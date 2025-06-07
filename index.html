@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knitlab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class', // Enable class-based dark mode
+      theme: {
+        extend: {
+          colors: {
+            primary: { // Softer Blue/Teal
+              light: '#76C4D5', // Lighter Soft Teal
+              DEFAULT: '#2A9DB1', // Muted Teal
+              dark: '#1E7A8C',  // Darker Muted Teal
+            },
+            secondary: { // Muted Coral/Peach
+              light: '#FBCDBA', // Light Coral Peach
+              DEFAULT: '#F7A17F', // Muted Coral
+              dark: '#E3815D'   // Darker Muted Coral
+            },
+            accent: '#E86A33',   // Burnt Orange - good for highlights
+            neutral: {
+              100: '#FCFCFC', // Very light gray, almost white (good for light backgrounds for print)
+              200: '#F3F4F6', // Light gray
+              300: '#E5E7EB', // Gray
+              400: '#D1D5DB', // Medium Gray
+              500: '#9CA3AF', // Darker Gray
+              600: '#6B7280',
+              700: '#4B5563', // Muted dark gray, good for dark backgrounds / text
+              800: '#374151',
+              900: '#1F2937', // Very Dark Gray / Off-black
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            areumFooter: ['ui-sans-serif', 'system-ui', 'sans-serif', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"],
+            monoExport: ['Roboto Mono', 'monospace'], // Added for export
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0'},
+              '100%': { transform: 'translateY(0px)', opacity: '1'}
+            }
+          },
+          animation: {
+            fadeIn: 'fadeIn 0.5s ease-out',
+            slideUp: 'slideUp 0.5s ease-out'
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    /* For custom scrollbars if desired, though Tailwind doesn't directly support this easily */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #9CA3AF; /* neutral-500 */
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #6B7280; /* neutral-600 */
+    }    ::-webkit-scrollbar-track {
+      background: #E5E7EB; /* neutral-300 */
+    }
+    /* Basic styling for SVG icons in buttons etc */
+    .icon-button svg {
+      width: 1.25em;
+      height: 1.25em;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.0.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 antialiased">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
