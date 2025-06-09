@@ -1,11 +1,10 @@
+import { StitchSymbolDef, ChartState, ChartGrid, Layer, ChartDisplaySettings, ApplicationState, KeyDefinition, KeyInstance, Point } from './types';
 
-import { StitchSymbolDef, ChartCell, ChartState, ChartGrid, Layer, ChartDisplaySettings, ApplicationState, KeyDefinition, KeyInstance, Point, KeyCellContent } from './types';
+export const DEFAULT_CELL_COLOR_LIGHT = '#FAF9F6';
+export const DEFAULT_CELL_COLOR_DARK = '#374151';
 
-export const DEFAULT_CELL_COLOR_LIGHT = '#FAF9F6'; 
-export const DEFAULT_CELL_COLOR_DARK = '#374151'; 
-
-export const DEFAULT_STITCH_COLOR_LIGHT = '#1F2937'; 
-export const DEFAULT_STITCH_COLOR_DARK = '#E5E7EB';  
+export const DEFAULT_STITCH_COLOR_LIGHT = '#1F2937';
+export const DEFAULT_STITCH_COLOR_DARK = '#E5E7EB';
 
 // Sentinel for background matching grid lines (original "transparent")
 export const TRANSPARENT_BACKGROUND_SENTINEL = 'transparent_grid_bg';
@@ -58,17 +57,16 @@ export const UNICODE_SYMBOLS_FOR_KEY_EDITOR: { value: string, name: string }[] =
 
 export const CIRCLED_DIGITS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'];
 
-
 export const INITIAL_ROWS = 20;
 export const INITIAL_COLS = 20;
 export const MAX_CHART_ROWS = 200;
 export const MAX_CHART_COLS = 200;
-export const CELL_SIZE = 28; 
-export const GRID_LINE_COLOR_LIGHT = '#D1D5DB'; 
-export const GRID_LINE_COLOR_DARK = '#4B5563'; 
+export const CELL_SIZE = 28;
+export const GRID_LINE_COLOR_LIGHT = '#D1D5DB';
+export const GRID_LINE_COLOR_DARK = '#4B5563';
 export const GUTTER_SIZE = 30;
 
-export const KEY_ID_EMPTY = 'key_empty_no_stitch'; 
+export const KEY_ID_EMPTY = 'key_empty_no_stitch';
 export const KEY_ID_KNIT_DEFAULT = 'key_knit_default';
 export const KEY_ID_PURL_DEFAULT = 'key_purl_default';
 
@@ -87,29 +85,29 @@ export const INITIAL_KEY_PALETTE: KeyDefinition[] = [
     abbreviation: 'K',
     width: 1,
     height: 1,
-    backgroundColor: DEFAULT_CELL_COLOR_LIGHT, 
+    backgroundColor: DEFAULT_CELL_COLOR_LIGHT,
     symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
-    cells: [[null]], 
+    cells: [[null]],
   },
   {
-    id: KEY_ID_PURL_DEFAULT, 
-    name: 'Purl', 
+    id: KEY_ID_PURL_DEFAULT,
+    name: 'Purl',
     abbreviation: 'P',
     width: 1,
     height: 1,
-    backgroundColor: DEFAULT_CELL_COLOR_LIGHT, 
-    symbolColor: DEFAULT_STITCH_COLOR_LIGHT, 
-    cells: [[{ type: 'text', value: '•' }]], 
+    backgroundColor: DEFAULT_CELL_COLOR_LIGHT,
+    symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
+    cells: [[{ type: 'text', value: '•' }]],
   },
   {
-    id: KEY_ID_EMPTY, 
-    name: 'No Stitch', 
+    id: KEY_ID_EMPTY,
+    name: 'No Stitch',
     abbreviation: ABBREVIATION_SKIP_SENTINEL, // Explicitly skip this in legend
     width: 1,
     height: 1,
-    backgroundColor: TRANSPARENT_BACKGROUND_SENTINEL, 
-    symbolColor: DEFAULT_STITCH_COLOR_LIGHT, 
-    cells: [[null]], 
+    backgroundColor: TRANSPARENT_BACKGROUND_SENTINEL,
+    symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
+    cells: [[null]],
   },
 ];
 
@@ -119,7 +117,7 @@ export const createChartGrid = (rows: number, cols: number): ChartGrid => {
     grid[r] = {};
     for (let c = 0; c < cols; c++) {
       // Initialize with default knit stitch
-      grid[r][c] = { keyId: KEY_ID_KNIT_DEFAULT, isAnchorCellForMxN: false, keyPartRowOffset: 0, keyPartColOffset: 0 }; 
+      grid[r][c] = { keyId: KEY_ID_KNIT_DEFAULT, isAnchorCellForMxN: false, keyPartRowOffset: 0, keyPartColOffset: 0 };
     }
   }
   return grid;
@@ -137,18 +135,18 @@ export const buildGridFromKeyPlacements = (
     const keyA = keyPalette.find(k => k.id === a.keyId);
     const keyB = keyPalette.find(k => k.id === b.keyId);
     if (!keyA || !keyB) return 0;
-    
+
     const isKeyAContentful = (keyA.cells && keyA.cells.flat().some(c => c !== null)) || (keyA.lines && keyA.lines.length > 0);
     const isKeyBContentful = (keyB.cells && keyB.cells.flat().some(c => c !== null)) || (keyB.lines && keyB.lines.length > 0);
-    
-    if (isKeyAContentful && !isKeyBContentful) return -1; 
-    if (!isKeyAContentful && isKeyBContentful) return 1;  
-    
+
+    if (isKeyAContentful && !isKeyBContentful) return -1;
+    if (!isKeyAContentful && isKeyBContentful) return 1;
+
     const areaA = keyA.width * keyA.height;
     const areaB = keyB.width * keyB.height;
 
     if (isKeyAContentful === isKeyBContentful) {
-      if (areaB !== areaA) return areaB - areaA; 
+      if (areaB !== areaA) return areaB - areaA;
     }
     if (a.anchor.y !== b.anchor.y) return a.anchor.y - b.anchor.y;
     return a.anchor.x - b.anchor.x;
@@ -156,7 +154,7 @@ export const buildGridFromKeyPlacements = (
 
   for (const placement of sortedPlacements) {
     const keyDef = keyPalette.find(k => k.id === placement.keyId);
-    if (!keyDef) continue; 
+    if (!keyDef) continue;
 
     for (let rOffset = 0; rOffset < keyDef.height; rOffset++) {
       for (let cOffset = 0; cOffset < keyDef.width; cOffset++) {
@@ -165,7 +163,7 @@ export const buildGridFromKeyPlacements = (
 
         if (targetR >= 0 && targetR < rows && targetC >= 0 && targetC < cols) {
           newGrid[targetR][targetC] = {
-            keyId: placement.keyId, 
+            keyId: placement.keyId,
             isAnchorCellForMxN: (rOffset === 0 && cOffset === 0 && (keyDef.width > 1 || keyDef.height > 1)),
             keyPartRowOffset: rOffset,
             keyPartColOffset: cOffset,
@@ -177,7 +175,6 @@ export const buildGridFromKeyPlacements = (
   return newGrid;
 };
 
-
 export const resizeKeyPlacements = (
   currentPlacements: KeyInstance[],
   keyPalette: KeyDefinition[],
@@ -186,14 +183,10 @@ export const resizeKeyPlacements = (
 ): KeyInstance[] => {
   return currentPlacements.filter(placement => {
     const keyDef = keyPalette.find(k => k.id === placement.keyId);
-    if (!keyDef) return false; 
+    if (!keyDef) return false;
     if (placement.anchor.y >= newRows || placement.anchor.x >= newCols) {
       return false;
     }
-    // Allow keys to be partially cut off by resize, don't remove them entirely
-    // if (placement.anchor.y + keyDef.height > newRows || placement.anchor.x + keyDef.width > newCols) {
-    //   return false; 
-    // }
     return true;
   });
 };
@@ -208,7 +201,7 @@ const initialKnitKeyPlacements: KeyInstance[] = [];
 const initialBaseLayerGrid = buildGridFromKeyPlacements(initialKnitKeyPlacements, INITIAL_ROWS, INITIAL_COLS, INITIAL_KEY_PALETTE);
 
 const initialBaseLayer: Layer = {
-  id: 'base', 
+  id: 'base',
   name: 'Base Layer',
   isVisible: true,
   grid: initialBaseLayerGrid,
@@ -216,8 +209,8 @@ const initialBaseLayer: Layer = {
 };
 
 const INITIAL_DISPLAY_SETTINGS: ChartDisplaySettings = {
-  rowCountVisibility: 'right', 
-  colCountVisibility: 'bottom', 
+  rowCountVisibility: 'right',
+  colCountVisibility: 'bottom',
 };
 
 export const INITIAL_CHART_STATE: ChartState = {
@@ -226,7 +219,7 @@ export const INITIAL_CHART_STATE: ChartState = {
   rows: INITIAL_ROWS,
   cols: INITIAL_COLS,
   orientation: 'bottom-up',
-  displaySettings: INITIAL_DISPLAY_SETTINGS, 
+  displaySettings: INITIAL_DISPLAY_SETTINGS,
   layers: [initialBaseLayer],
   activeLayerId: initialBaseLayer.id,
 };
@@ -271,7 +264,7 @@ export const isPointInFootprint = (
 };
 
 export const insertRowInKeyPlacements = (
-  placements: KeyInstance[], 
+  placements: KeyInstance[],
   rowIndex: number,
   oldGrid: ChartGrid, // Grid state *before* row insertion (conceptual)
   keyPalette: KeyDefinition[],
@@ -289,7 +282,7 @@ export const insertRowInKeyPlacements = (
   // If inserting at row 0, copy from what *was* row 0 (if exists).
   // If inserting at row k > 0, copy from what *was* row k-1.
   // oldGrid refers to the grid *before* any conceptual dimension change or placement shifting.
-  const templateRowIndexInOldGrid = rowIndex === 0 
+  const templateRowIndexInOldGrid = rowIndex === 0
     ? (oldGrid[0] ? 0 : -1) // Use oldGrid[0] if it exists, else -1 (no template)
     : rowIndex - 1;
 
@@ -297,7 +290,7 @@ export const insertRowInKeyPlacements = (
     for (let c = 0; c < numCols; c++) {
       const cellDataInOldGrid = oldGrid[templateRowIndexInOldGrid]?.[c];
       // Use the keyId from the template cell, or default to knit if undefined/null
-      const keyIdToCopy = cellDataInOldGrid?.keyId || KEY_ID_KNIT_DEFAULT; 
+      const keyIdToCopy = cellDataInOldGrid?.keyId || KEY_ID_KNIT_DEFAULT;
       newRowPlacements.push({ anchor: { y: rowIndex, x: c }, keyId: keyIdToCopy });
     }
   } else { // No template row (e.g., inserting into an empty grid or at row 0 of 0-row grid)
@@ -305,20 +298,20 @@ export const insertRowInKeyPlacements = (
       newRowPlacements.push({ anchor: { y: rowIndex, x: c }, keyId: KEY_ID_KNIT_DEFAULT });
     }
   }
-  
+
   return [...shiftedPlacements, ...newRowPlacements];
 };
 
 export const deleteRowInKeyPlacements = (placements: KeyInstance[], rowIndex: number, keyPalette: KeyDefinition[], newNumRows: number): KeyInstance[] => {
   return placements
-    .filter(p => { 
+    .filter(p => {
       const keyDef = keyPalette.find(k => k.id === p.keyId);
       if (!keyDef) return false;
       // Remove if anchor is in the deleted row
-      if (p.anchor.y === rowIndex) return false; 
-      return true; 
+      if (p.anchor.y === rowIndex) return false;
+      return true;
     })
-    .map(p => { 
+    .map(p => {
       if (p.anchor.y > rowIndex) {
         return { ...p, anchor: { ...p.anchor, y: p.anchor.y - 1 } };
       }
@@ -327,7 +320,7 @@ export const deleteRowInKeyPlacements = (placements: KeyInstance[], rowIndex: nu
 };
 
 export const insertColInKeyPlacements = (
-  placements: KeyInstance[], 
+  placements: KeyInstance[],
   colIndex: number,
   oldGrid: ChartGrid, // Grid state *before* column insertion
   keyPalette: KeyDefinition[],
@@ -341,7 +334,7 @@ export const insertColInKeyPlacements = (
   });
 
   const newColPlacements: KeyInstance[] = [];
-  const templateColIndexInOldGrid = colIndex === 0 
+  const templateColIndexInOldGrid = colIndex === 0
     ? (oldGrid[0]?.[0] ? 0 : -1) // Check if oldGrid[0] and oldGrid[0][0] exist
     : colIndex - 1;
 
@@ -374,27 +367,26 @@ export const deleteColInKeyPlacements = (placements: KeyInstance[], colIndex: nu
     });
 };
 
-
 export const hexToRgba = (hex: string, alpha: number): string => {
-  if (hex === TRANSPARENT_BACKGROUND_SENTINEL || hex === THEME_DEFAULT_BACKGROUND_SENTINEL) { 
-      return `rgba(0,0,0,0)`; 
+  if (hex === TRANSPARENT_BACKGROUND_SENTINEL || hex === THEME_DEFAULT_BACKGROUND_SENTINEL) {
+      return `rgba(0,0,0,0)`;
   }
   if (!hex.startsWith('#') || (hex.length !== 4 && hex.length !== 7)) {
     console.warn(`Invalid hex string passed to hexToRgba: ${hex}`);
-    return `rgba(0,0,0,0)`; 
+    return `rgba(0,0,0,0)`;
   }
 
   let rHex = '', gHex = '', bHex = '';
-  if (hex.length === 4) { 
+  if (hex.length === 4) {
     rHex = hex[1] + hex[1];
     gHex = hex[2] + hex[2];
     bHex = hex[3] + hex[3];
-  } else { 
+  } else {
     rHex = hex.slice(1, 3);
     gHex = hex.slice(3, 5);
     bHex = hex.slice(5, 7);
   }
-  
+
   const r = parseInt(rHex, 16);
   const g = parseInt(gHex, 16);
   const b = parseInt(bHex, 16);
@@ -404,7 +396,7 @@ export const hexToRgba = (hex: string, alpha: number): string => {
 export const INITIAL_APPLICATION_STATE: ApplicationState = {
   sheets: [INITIAL_CHART_STATE],
   activeSheetId: INITIAL_CHART_STATE.id,
-  keyPalette: INITIAL_KEY_PALETTE, 
+  keyPalette: INITIAL_KEY_PALETTE,
 };
 
 export const createNewSheet = (existingSheetNames: string[], currentKeyPalette: KeyDefinition[]): ChartState => {
@@ -414,11 +406,11 @@ export const createNewSheet = (existingSheetNames: string[], currentKeyPalette: 
     counter++;
     newName = `Sheet ${counter}`;
   }
-  
+
   // initialKeyPlacements will be empty as createChartGrid now handles default fill
   const newKeyPlacements: KeyInstance[] = [];
-  const newGrid = buildGridFromKeyPlacements(newKeyPlacements, INITIAL_ROWS, INITIAL_COLS, currentKeyPalette); 
-  
+  const newGrid = buildGridFromKeyPlacements(newKeyPlacements, INITIAL_ROWS, INITIAL_COLS, currentKeyPalette);
+
   const newBaseLayer: Layer = {
     id: 'base',
     name: 'Base Layer',

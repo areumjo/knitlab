@@ -4,11 +4,15 @@ This contains everything you need to run your app locally.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Run the app:
    `npm run dev`
+3. Run the build command to generate the production files:
+   `npm run build`
+4. Preview the production build locally:
+   `npm run preview`
+
+This will start a local server (usually at http://localhost:4173) so you can see exactly what will be deployed.

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { ApplicationState, HistoryEntry } from '../types';
+import areumKnitlabImg from '../assets/areum-knitlab-i-did-that.png';
 
 interface DeveloperMenuModalProps {
   isOpen: boolean;
@@ -94,7 +95,7 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
         return (
           <div className="space-y-1 p-2">
             <a href="https://www.linkedin.com/in/areum-jo/" target="_blank" rel="noopener noreferrer" className="block text-center text-primary hover:underline">https://www.linkedin.com/in/areum-jo/</a>
-            <img src="../assets/areum-knitlab-i-did-that.png" alt="Areum Kintlab - I did that" className="w-full h-auto rounded-md" />
+            <img src={areumKnitlabImg} alt="Areum Kintlab - I did that" className="w-full h-auto rounded-md" />
           </div>
         );
     }
