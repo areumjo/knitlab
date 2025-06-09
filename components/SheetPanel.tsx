@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ChartState } from '../types';
 import { Button } from './Button';
-import { PlusIcon, TrashIcon, PenIcon as EditIcon } from './Icon'; // Using PenIcon as EditIcon
+import { PlusIcon, TrashIcon, RenameSheetIcon } from './Icon';
 
 interface SheetPanelProps {
   sheets: ChartState[];
@@ -95,7 +95,7 @@ export const SheetPanel: React.FC<SheetPanelProps> = ({
                   onClick={(e) => { e.stopPropagation(); handleRenameStart(sheet); }}
                   title="Rename sheet"
                 >
-                  <EditIcon />
+                  <RenameSheetIcon />
                 </Button>
               )}
               <Button

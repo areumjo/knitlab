@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Button } from './Button';
-import { SettingsIcon, SunIcon, MoonIcon, UndoIcon, RedoIcon, TextIcon, ImageIcon as ExportJpgIcon, ZoomInIcon, ZoomOutIcon } from './Icon'; // Removed SaveIcon, LoadIcon
+import { SettingsIcon, SunIcon, MoonIcon, UndoIcon, RedoIcon, TextToInstructionIcon, ExportJpgIcon, ZoomInIcon, ZoomOutIcon } from './Icon';
 import { ZOOM_LEVELS_BASE } from '../constants';
 
 interface HeaderProps {
@@ -66,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
         <Button variant="ghost" size="sm" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)"><UndoIcon /></Button>
         <Button variant="ghost" size="sm" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Y)"><RedoIcon /></Button>
         <div className="h-6 border-l border-neutral-300 dark:border-neutral-600 mx-0.5 sm:mx-1"></div>
-        <Button variant="ghost" size="sm" onClick={onGenerateInstructions} title="Generate Written Instructions"><TextIcon /></Button>
+        <Button variant="ghost" size="sm" onClick={onGenerateInstructions} title="Generate Written Instructions"><TextToInstructionIcon /></Button>
         <Button variant="ghost" size="sm" onClick={onOpenExportModal} title="Export to JPG"><ExportJpgIcon /></Button>
       </div>
 

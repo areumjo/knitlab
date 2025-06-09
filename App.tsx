@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Header } from './components/Header';
 import { TabbedSidebar } from './components/TabbedSidebar';
@@ -16,7 +13,7 @@ import { MiniMap } from './components/MiniMap';
 import { DeveloperMenuModal } from './components/DeveloperMenuModal';
 import { ContextMenu } from './components/ContextMenu';
 import { ExportPreviewModal } from './components/ExportPreviewModal';
-import { Tool, StitchSymbolDef, Layer, ChartState, Point, ChartGrid, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ApplicationState, ClipboardData, KeyDefinition, ChartDisplaySettings, ContextMenuItem, ProcessedImageData, HistoryEntry } from './types';
+import { Tool, Layer, ChartState, Point, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ApplicationState, ClipboardData, KeyDefinition, ChartDisplaySettings, ContextMenuItem, ProcessedImageData } from './types';
 import {
   DEFAULT_STITCH_SYMBOLS,
   INITIAL_APPLICATION_STATE,
@@ -25,8 +22,6 @@ import {
   DEFAULT_CELL_COLOR_DARK,
   DEFAULT_STITCH_COLOR_LIGHT,
   DEFAULT_STITCH_COLOR_DARK,
-  GRID_LINE_COLOR_LIGHT,
-  GRID_LINE_COLOR_DARK,
   ZOOM_LEVELS_BASE,
   DEFAULT_ZOOM_INDEX,
   buildGridFromKeyPlacements,
@@ -44,7 +39,6 @@ import {
   generateNewSheetId,
   calculateFootprint,
   doFootprintsOverlap,
-  isPointInFootprint,
   createChartGrid,
   TRANSPARENT_BACKGROUND_SENTINEL,
   THEME_DEFAULT_BACKGROUND_SENTINEL,
@@ -133,7 +127,6 @@ export const App: React.FC = () => {
         setCurrentZoomInternal(effectiveLevels[newDefaultZoomIndex >= 0 ? newDefaultZoomIndex : 0]);
     }
   }, [activeSheet?.rows, activeSheet?.cols, currentZoom, getEffectiveZoomLevels]);
-
 
   const [viewOffset, setViewOffset] = useState<Point>({ x: 0, y: 0 });
   const [canvasContainerSize, setCanvasContainerSize] = useState({ width: 0, height: 0 });
@@ -278,8 +271,8 @@ export const App: React.FC = () => {
       const existingIndex = prevAppState.keyPalette.findIndex(k => k.id === keyDef.id);
       let newPalette;
       // Ensure abbreviation is correctly set for KEY_ID_EMPTY
-      const finalKeyDef = keyDef.id === KEY_ID_EMPTY 
-          ? { ...keyDef, abbreviation: ABBREVIATION_SKIP_SENTINEL } 
+      const finalKeyDef = keyDef.id === KEY_ID_EMPTY
+          ? { ...keyDef, abbreviation: ABBREVIATION_SKIP_SENTINEL }
           : keyDef;
 
       if (existingIndex > -1) {
@@ -326,12 +319,6 @@ export const App: React.FC = () => {
         return {...sheet, layers: newLayers};
       });
 
-      // Update activeKeyId directly here based on the newPalette if it was deleted
-      // This ensures that the state update for activeKeyId happens within the same recordChange
-      // This might not be strictly necessary if setActiveKeyId is called after, but good for atomicity.
-      const finalActiveKeyId = activeKeyId === keyIdToDelete ? (newPalette[0]?.id || null) : activeKeyId;
-
-
       return { ...prevAppState, keyPalette: newPalette, sheets: updatedSheets };
     });
      // If the active key was deleted, update the local activeKeyId state
@@ -364,7 +351,6 @@ export const App: React.FC = () => {
     addOrUpdateKeyInPalette(newKey);
     handleOpenKeyEditor(newKey);
   };
-
 
   const applyKeyToLayerPlacements = (
     layer: Layer,
@@ -420,7 +406,7 @@ export const App: React.FC = () => {
       return { ...prevAppState, sheets: newSheets };
     });
   }, []);
-  
+
   const modifyActiveSheetLayerWithModifier = (
     prevAppState: ApplicationState,
     modifier: (layer: Layer, chartRows: number, chartCols: number, keyPalette: KeyDefinition[]) => Layer | null
@@ -442,7 +428,6 @@ export const App: React.FC = () => {
     newSheets[activeSheetIndex] = { ...oldActiveSheet, layers: newLayers };
     return { ...prevAppState, sheets: newSheets };
   };
-
 
   const handleChartSettingsSave = (settings: {
     rows: number;
@@ -622,7 +607,7 @@ export const App: React.FC = () => {
       return {...prevAppState, sheets: newSheets};
     });
   };
-  
+
   const isCurrentlyDragPaintingRef = useRef(false);
 
   const handlePenDragSessionStart = useCallback(() => {
@@ -641,7 +626,7 @@ export const App: React.FC = () => {
     setLastActionPoint(anchorCoords);
     if (!keyDefToApply) return;
 
-    const modifier = (currentLayer: Layer, chartRows: number, chartCols: number, currentKeyPalette: KeyDefinition[]) => 
+    const modifier = (currentLayer: Layer, chartRows: number, chartCols: number, currentKeyPalette: KeyDefinition[]) =>
         applyKeyToLayerPlacements(currentLayer, keyDefToApply, anchorCoords, chartRows, chartCols, currentKeyPalette);
 
     // activeTool is guaranteed to be Tool.Pen here by KnitCanvas's calling logic.
@@ -985,7 +970,6 @@ export const App: React.FC = () => {
     setPastePreviewAnchor(clampedAnchor);
   }, [isPreviewingPaste, pastePreviewInfo, activeSheet]);
 
-
  const handleInsertRow = useCallback((rowIndex: number) => {
     recordAppChangeRef.current(prevAppState => {
       const activeSheetIndex = prevAppState.sheets.findIndex(s => s.id === prevAppState.activeSheetId);
@@ -1043,7 +1027,6 @@ export const App: React.FC = () => {
         } else setSelection(newSel);
       }
       if (lastActionPoint.y >=rowIndex) setLastActionPoint(prev => ({...prev, y: Math.max(0, prev.y -1)}));
-
 
       return { ...prevAppState, sheets: newSheets };
     });
@@ -1144,7 +1127,6 @@ export const App: React.FC = () => {
     }
   }, [activeSheet, applicationState.keyPalette, selectionAnchorPoint]);
 
-
   const handleSelectAllActiveLayer = () => { setSelectAllActiveLayerFlag(`${Date.now()}`); };
 
   const handleMiniMapPan = (targetCenterGridCoords: Point) => {
@@ -1213,7 +1195,6 @@ export const App: React.FC = () => {
     }
   };
 
-
   const handleCreateChartFromProcessedImage = (data: ProcessedImageData) => {
     let firstKeyIdForNewPalette: string | null = null;
 
@@ -1254,7 +1235,6 @@ export const App: React.FC = () => {
                  if (foundNewKey) colorToKeyIdMap.set(hexColor, foundNewKey.id);
             }
         });
-
 
         const existingSheetNames = prevAppState.sheets.map(s => s.name);
         let newSheetName = "Image Chart 1";
@@ -1318,12 +1298,11 @@ export const App: React.FC = () => {
   const [devContextMenu, setDevContextMenu] = useState<{ visible: boolean; x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [sidebarActualWidth, setSidebarActualWidth] = useState(ICON_RIBBON_WIDTH_CONST);
 
-
   useEffect(() => {
     const calculateBottoms = () => {
         const paletteHeight = floatingToolbarRef.current?.offsetHeight || 0;
-        const gap = 8; 
-        const screenWidth = window.innerWidth; 
+        const gap = 8;
+        const screenWidth = window.innerWidth;
 
         if (screenWidth < RESPONSIVE_BREAKPOINT && paletteHeight > 0) {
             const liftedBottomValue = `${paletteHeight + gap + 4}px`; // 4px is toolbar's own bottom
@@ -1334,7 +1313,7 @@ export const App: React.FC = () => {
     };
     calculateBottoms();
     window.addEventListener('resize', calculateBottoms);
-    
+
     const toolbarElement = floatingToolbarRef.current;
     let observer: ResizeObserver | undefined;
     if (toolbarElement) {
@@ -1348,7 +1327,7 @@ export const App: React.FC = () => {
             observer.unobserve(toolbarElement);
         }
     };
-  }, []); 
+  }, []);
 
   const handleFooterContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -1363,8 +1342,8 @@ export const App: React.FC = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || 
-          event.target instanceof HTMLTextAreaElement || 
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement ||
           event.target instanceof HTMLSelectElement) {
         // Don't interfere if user is typing in an input/modal
         if (event.key === "Escape" && (isKeyEditorOpen || isImageImporterOpen || isImageProcessorModalOpen || isInstructionsGeneratorOpen || isChartSettingsModalOpen || isExportPreviewModalOpen || isDeveloperMenuOpen)) {
@@ -1415,7 +1394,6 @@ export const App: React.FC = () => {
           }
       }
 
-
       // Selection content modification
       if ((event.key === 'Delete' || event.key === 'Backspace') && selection && !event.ctrlKey && !event.metaKey) {
         event.preventDefault();
@@ -1448,15 +1426,14 @@ export const App: React.FC = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [
-    isPreviewingPaste, isActuallyDrawingSel, isDraggingSelection, selection, 
+    isPreviewingPaste, isActuallyDrawingSel, isDraggingSelection, selection,
     activeTool, clipboardContent, applicationState.keyPalette, // Added keyPalette for shortcut access
-    undo, redo, handleCopySelection, handleCutSelection, handlePasteFromClipboard, 
+    undo, redo, handleCopySelection, handleCutSelection, handlePasteFromClipboard,
     clearAllInCurrentSelection, setActiveTool, setActiveKeyId, handlePastePreviewCancel, // Added setActiveKeyId
-    isKeyEditorOpen, isImageImporterOpen, isImageProcessorModalOpen, 
-    isInstructionsGeneratorOpen, isChartSettingsModalOpen, 
+    isKeyEditorOpen, isImageImporterOpen, isImageProcessorModalOpen,
+    isInstructionsGeneratorOpen, isChartSettingsModalOpen,
     isExportPreviewModalOpen, isDeveloperMenuOpen
   ]);
-
 
   return (
     <div className="flex flex-col h-screen bg-neutral-100 dark:bg-neutral-800 transition-colors duration-300">
@@ -1491,7 +1468,7 @@ export const App: React.FC = () => {
         onToggleShowKeyTally={toggleShowKeyUsageTallyGlobal} // Not used by UI but part of props
         keyUsageData={keyUsageData}
       />
-      
+
       <div className="flex flex-grow overflow-hidden">
         <TabbedSidebar
           layers={activeSheet.layers}
@@ -1508,7 +1485,7 @@ export const App: React.FC = () => {
           onAddSheet={handleAddSheet}
           onRemoveSheet={handleRemoveSheet}
           onRenameSheet={handleRenameSheetById}
-          
+
           activeTab={activeSidebarTab}
           onTabSelect={handleActiveSidebarTabChange}
           isSidebarContentVisible={isSidebarContentVisible}
@@ -1530,14 +1507,14 @@ export const App: React.FC = () => {
               viewOffset={viewOffset}
               onViewOffsetChange={setViewOffset}
               canvasSize={canvasContainerSize}
-              
+
               selection={selection}
               isActuallyDrawingSel={isActuallyDrawingSel}
               selectionDragAnchorForCanvas={selectionAnchorPoint}
               isActuallyDraggingSel={isDraggingSelection}
               draggedCellsPreviewInfo={draggedCellsInfo}
               dragPreviewSnappedGridPosition={dragPreviewSnappedGridPosition}
-              
+
               onSelectionChange={handleSelectionChangeFromCanvas}
               onCellAction={handleCellAction}
               onSelectionDragStart={handleSelectionDragStart}
@@ -1569,18 +1546,18 @@ export const App: React.FC = () => {
               onPastePreviewFinalize={handlePastePreviewFinalize}
               onPastePreviewCancel={handlePastePreviewCancel}
               activeKeyId={activeKeyId}
-              
+
               onPenDragSessionStart={handlePenDragSessionStart}
               onPenDragSessionContinue={handlePenDragSessionContinue}
               onPenDragSessionEnd={handlePenDragSessionEnd}
             />
           )}
-            <div 
+            <div
               className="fixed z-10 opacity-80 hover:opacity-100 transition-opacity"
-              style={{ 
-                bottom: dynamicBottomStyle.miniMap, 
+              style={{
+                bottom: dynamicBottomStyle.miniMap,
                 left: `${sidebarActualWidth + MINIMAP_SIDE_MARGIN}px`,
-                width: `${MINIMAP_MAX_WIDTH}px`, 
+                width: `${MINIMAP_MAX_WIDTH}px`,
                 height: `${MINIMAP_MAX_HEIGHT}px`
               }}
             >
@@ -1605,13 +1582,13 @@ export const App: React.FC = () => {
         </main>
       </div>
 
-      <FloatingToolPalette 
+      <FloatingToolPalette
         ref={floatingToolbarRef}
         activeTool={activeTool}
         onToolSelect={setActiveTool}
         isSelectionActive={!!selection}
         onRequestApplyActiveKeyToSelection={applyActiveKeyToSelection}
-        onRequestClearSelectionArea={clearAllInCurrentSelection} 
+        onRequestClearSelectionArea={clearAllInCurrentSelection}
         onRequestClearAllInSelection={clearAllInCurrentSelection}
         onCopySelection={handleCopySelection}
         onCutSelection={handleCutSelection}
@@ -1620,7 +1597,7 @@ export const App: React.FC = () => {
         canCut={!!selection}
         canPaste={!!clipboardContent}
       />
-      
+
       <footer
         onContextMenu={handleFooterContextMenu}
         className="fixed right-2 p-2 text-xs text-neutral-500 dark:text-neutral-400 font-areumFooter z-10 transition-all duration-150 ease-in-out text-right"
@@ -1631,7 +1608,6 @@ export const App: React.FC = () => {
         Crafted with ❤️ and code.
       </footer>
       {devContextMenu?.visible && <ContextMenu x={devContextMenu.x} y={devContextMenu.y} items={devContextMenu.items} onClose={() => setDevContextMenu(null)} />}
-
 
       {isKeyEditorOpen && (
         <KeyEditorModal

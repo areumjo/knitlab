@@ -3,7 +3,6 @@ import React, { useState, useCallback } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { UploadIcon } from './Icon';
-import { analyzeImageWithGemini } from '../services/geminiService'; // Placeholder service
 
 interface ImageImporterProps {
   isOpen: boolean;
@@ -50,30 +49,8 @@ export const ImageImporter: React.FC<ImageImporterProps> = ({ isOpen, onClose, o
         return;
     }
 
-    try {
-      // This is where Gemini API would be called.
-      // The prompt would instruct Gemini to convert the image to a chart-like representation
-      // based on numColors, etc.
-      const prompt = `Analyze this image and convert it into a simplified color chart representation suitable for knitting. 
-      Reduce the image to ${numColors} dominant colors. 
-      Describe the main shapes and color areas. 
-      Output a conceptual representation of the color regions. 
-      For example, if it's a 2-color chart, describe pixel regions or a simplified grid.`;
-      
-      const result = await analyzeImageWithGemini(base64Data, prompt);
-      setAnalysisResult(result);
-      // In a real app, 'result' would be parsed and converted into chartData structure.
-      // onChartGenerated(parsedChartData);
-      console.log("Image analysis result (raw):", result);
-      // For now, we just display the text.
-    } catch (error) {
-      console.error("Error processing image:", error);
-      setAnalysisResult(`Error: ${error instanceof Error ? error.message : 'Failed to analyze image.'}`);
-    } finally {
-      setIsLoading(false);
-    }
   };
-  
+
   const handleClose = () => {
     setSelectedFile(null);
     setPreviewUrl(null);

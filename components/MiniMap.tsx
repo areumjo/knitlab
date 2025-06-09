@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
-import { ChartState, Point, KeyDefinition, MiniMapProps } from '../types';
+import { MiniMapProps } from '../types';
 import {
     DEFAULT_STITCH_COLOR_DARK,
     DEFAULT_STITCH_COLOR_LIGHT,
@@ -24,7 +24,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
 }) => {
   const { rows, cols, layers } = chartState;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null); 
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const themeDefaultBg = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
   const gridLineBg = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
@@ -53,7 +53,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
             const keyDefOnLayer = keyPalette.find(k => k.id === cellInGrid.keyId);
             if (cellInGrid.keyId !== null && keyDefOnLayer && (cellInGrid.isAnchorCellForMxN || (keyDefOnLayer.width === 1 && keyDefOnLayer.height === 1))) {
                 finalKeyId = cellInGrid.keyId;
-                break; 
+                break;
             } else if (cellInGrid.keyId !== null && keyDefOnLayer && !cellInGrid.isAnchorCellForMxN && (keyDefOnLayer.width > 1 || keyDefOnLayer.height > 1)){
                  // This is part of an MxN symbol, use its main keyId
                 finalKeyId = cellInGrid.keyId;
@@ -61,7 +61,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
             }
         }
     }
-    
+
     const keyDef = finalKeyId ? (keyPalette.find(k => k.id === finalKeyId) || defaultKeyDefForEmpty) : defaultKeyDefForEmpty;
 
     let cellBgColor: string;
@@ -72,7 +72,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
     } else {
       cellBgColor = keyDef.backgroundColor;
     }
-    
+
     const keyHasRenderableContent = (keyDef.cells && keyDef.cells.flat().some(cell => cell !== null)) || (keyDef.lines && keyDef.lines.length > 0);
 
     if (keyHasRenderableContent && cellBgColor === baseEmptyBgColorForMinimap && keyDef.id !== KEY_ID_EMPTY) {
@@ -96,7 +96,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
             const gCVal = parseInt(gHex, 16);
             const bCVal = parseInt(bHex, 16);
             // Use a noticeable alpha for the symbol color to tint the cell
-            return `rgba(${rCVal},${gCVal},${bCVal},0.5)`; 
+            return `rgba(${rCVal},${gCVal},${bCVal},0.5)`;
         }
         // If symbol color is not a hex (e.g. a named color, less likely here), fall back to bg or a default tint
         return cellBgColor; // Or a default tint if symbolBaseColor is unusual
@@ -112,32 +112,32 @@ export const MiniMap: React.FC<MiniMapProps> = ({
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
-    const minimapRootDivPadding = 0; 
-    const containerBorder = 2; 
+
+    const minimapRootDivPadding = 0;
+    const containerBorder = 2;
 
     const availableHeightForCanvas = maxContainerSize.height - (minimapRootDivPadding * 2) - containerBorder;
     const availableWidthForCanvas = maxContainerSize.width - (minimapRootDivPadding * 2) - containerBorder;
-    
+
     if (availableWidthForCanvas <= 0 || availableHeightForCanvas <= 0) return;
 
     const scaleX = availableWidthForCanvas / cols;
     const scaleY = availableHeightForCanvas / rows;
-    const dynamicMiniCellSize = Math.max(0.1, Math.min(scaleX, scaleY)); 
+    const dynamicMiniCellSize = Math.max(0.1, Math.min(scaleX, scaleY));
 
     const mapContentDrawingWidth = cols * dynamicMiniCellSize;
     const mapContentDrawingHeight = rows * dynamicMiniCellSize;
 
     containerEl.style.width = `${mapContentDrawingWidth}px`;
     containerEl.style.height = `${mapContentDrawingHeight}px`;
-    
+
     canvas.width = mapContentDrawingWidth;
     canvas.height = mapContentDrawingHeight;
-    
-    if (dynamicMiniCellSize <= 0) return; 
+
+    if (dynamicMiniCellSize <= 0) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         ctx.fillStyle = getMinimapCellColor(r, c);
@@ -151,7 +151,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
     }
 
     ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
-    ctx.lineWidth = 1; 
+    ctx.lineWidth = 1;
 
     const viewRectX_scaled = viewport.x * dynamicMiniCellSize;
     const viewRectY_scaled = viewport.y * dynamicMiniCellSize;
@@ -179,18 +179,18 @@ export const MiniMap: React.FC<MiniMapProps> = ({
             ctx.stroke();
         }
     }
-  }, [rows, cols, getMinimapCellColor, viewport, isDarkMode, maxContainerSize.width, maxContainerSize.height, chartState]); 
+  }, [rows, cols, getMinimapCellColor, viewport, isDarkMode, maxContainerSize.width, maxContainerSize.height, chartState]);
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas || canvas.width === 0 || canvas.height === 0) return; 
+    if (!canvas || canvas.width === 0 || canvas.height === 0) return;
 
     const rect = canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
 
-    const dynamicMiniCellSize = canvas.width / cols; 
-    if (dynamicMiniCellSize <= 0) return; 
+    const dynamicMiniCellSize = canvas.width / cols;
+    if (dynamicMiniCellSize <= 0) return;
 
     const targetGridX = Math.floor(clickX / dynamicMiniCellSize);
     const targetGridY = Math.floor(clickY / dynamicMiniCellSize);
@@ -199,7 +199,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
   };
 
   return (
-    <div 
+    <div
         ref={containerRef}
         className="w-full h-full border border-neutral-300 dark:border-neutral-600 bg-neutral-200/80 dark:bg-neutral-700/80 relative overflow-hidden cursor-pointer shadow-lg rounded"
         onClick={handleClick}

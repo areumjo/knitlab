@@ -2,16 +2,16 @@
 import React from 'react';
 import { Tool } from '../types';
 import { Button } from './Button';
-import { PenIcon, SelectIcon, MoveIcon, XIcon, CopyIcon, CutIcon, PasteIcon } from './Icon';
+import { PenIcon, SelectIcon, MoveIcon, CopyIcon, CutIcon, PasteIcon } from './Icon';
 
 interface FloatingToolPaletteProps {
   activeTool: Tool;
   onToolSelect: (tool: Tool) => void;
   isSelectionActive: boolean;
-  
+
   onRequestApplyActiveKeyToSelection: () => void;
-  onRequestClearSelectionArea: () => void; 
-  onRequestClearAllInSelection: () => void; 
+  onRequestClearSelectionArea: () => void;
+  onRequestClearAllInSelection: () => void;
 
   onCopySelection: () => void;
   onCutSelection: () => void;
@@ -22,7 +22,7 @@ interface FloatingToolPaletteProps {
 }
 
 interface ToolDefinition {
-  tool?: Tool; 
+  tool?: Tool;
   label: string;
   icon: React.ReactNode;
   hotkeyDescription?: string;
@@ -31,13 +31,9 @@ interface ToolDefinition {
   disabled?: boolean;
 }
 
-export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingToolPaletteProps>(({ 
-    activeTool, 
-    onToolSelect, 
-    isSelectionActive,
-    onRequestApplyActiveKeyToSelection,
-    onRequestClearSelectionArea,
-    onRequestClearAllInSelection,
+export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingToolPaletteProps>(({
+    activeTool,
+    onToolSelect,
     onCopySelection,
     onCutSelection,
     onPasteFromClipboard,
@@ -49,14 +45,14 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
   const mainTools: ToolDefinition[] = [
     { tool: Tool.Pen, label: 'Apply Key / Eraser', icon: <PenIcon />, hotkeyDescription: 'Use with selected key (Empty key for eraser)', hotkeyDisplay: 'A' },
   ];
-  
+
   const selectAndClipboardTools: ToolDefinition[] = [
     { tool: Tool.Select, label: 'Select Area', icon: <SelectIcon />, hotkeyDescription: 'Drag to select', hotkeyDisplay: 'S' },
     { label: 'Copy', icon: <CopyIcon />, action: onCopySelection, disabled: !canCopy, hotkeyDescription: 'Ctrl+C' },
     { label: 'Cut', icon: <CutIcon />, action: onCutSelection, disabled: !canCut, hotkeyDescription: 'Ctrl+X' },
     { label: 'Paste', icon: <PasteIcon />, action: onPasteFromClipboard, disabled: !canPaste, hotkeyDescription: 'Ctrl+V' },
   ];
-  
+
   const utilityTools: ToolDefinition[] = [
     { tool: Tool.Move, label: 'Pan View', icon: <MoveIcon />, hotkeyDescription: 'Click & drag canvas / Middle mouse button', hotkeyDisplay: 'ESC' },
   ];
@@ -80,7 +76,7 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
         >
           {icon}
           {hotkeyDisplay && (
-            <span 
+            <span
               className="absolute -bottom-1 -right-0.5 text-[9px] bg-neutral-400 dark:bg-neutral-600 text-neutral-50 dark:text-neutral-200 px-1 py-0.5 rounded-sm leading-none shadow"
               aria-hidden="true"
             >

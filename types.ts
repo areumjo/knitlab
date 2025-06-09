@@ -1,9 +1,6 @@
-
-
-
 export interface Point {
-  x: number; 
-  y: number; 
+  x: number;
+  y: number;
 }
 
 export interface Line {
@@ -15,34 +12,34 @@ export interface StitchSymbolDef {
   id: string;
   name: string;
   abbreviation: string;
-  displayText?: string; 
+  displayText?: string;
   svgContent?: string;
   description?: string;
   category?: string;
 }
 
 export interface KeyCellContent {
-  type: 'svg' | 'text'; 
-  value: string; 
+  type: 'svg' | 'text';
+  value: string;
 }
 
 export interface KeyDefinition {
   id: string;
   name: string;
   abbreviation?: string | null; // Added for custom abbreviation
-  width: number; 
-  height: number; 
+  width: number;
+  height: number;
   backgroundColor: string;
-  symbolColor: string; 
-  cells?: (KeyCellContent | null)[][]; 
-  lines?: Line[]; 
+  symbolColor: string;
+  cells?: (KeyCellContent | null)[][];
+  lines?: Line[];
 }
 
 export interface ChartCell {
   keyId: string | null;
   isAnchorCellForMxN?: boolean;
-  keyPartRowOffset?: number; 
-  keyPartColOffset?: number; 
+  keyPartRowOffset?: number;
+  keyPartColOffset?: number;
 }
 
 export interface ChartGrid {
@@ -70,7 +67,7 @@ export interface ChartDisplaySettings {
 }
 
 export interface ChartState {
-  id: string; 
+  id: string;
   rows: number;
   cols: number;
   orientation: 'bottom-up' | 'top-down' | 'left-right' | 'in-the-round';
@@ -81,7 +78,7 @@ export interface ChartState {
 }
 
 export enum Tool {
-  Pen = 'pen', 
+  Pen = 'pen',
   Select = 'select',
   Move = 'move',
 }
@@ -100,7 +97,7 @@ type ActionContextItem = {
   label: string;
   action: () => void;
   disabled?: boolean;
-  isSeparator?: false | undefined; 
+  isSeparator?: false | undefined;
 };
 
 type SeparatorContextItem = {
@@ -122,15 +119,15 @@ export interface DraggedCellsInfo {
   originalStartCoords: Point;
 }
 
-export type TabId = 'layers' | 'text' | 'sheets' | 'keys'; 
-// If 'image-import' needed to show distinct content in the sidebar pane, 
+export type TabId = 'layers' | 'text' | 'sheets' | 'keys';
+// If 'image-import' needed to show distinct content in the sidebar pane,
 // it would be added here: e.g. export type TabId = 'layers' | 'text' | 'sheets' | 'keys' | 'image-import';
 // For now, it only triggers a modal, so the existing TabId might suffice for content-displaying tabs.
 
 export interface ApplicationState {
   sheets: ChartState[];
   activeSheetId: string | null;
-  keyPalette: KeyDefinition[]; 
+  keyPalette: KeyDefinition[];
 }
 
 export interface ClipboardData {

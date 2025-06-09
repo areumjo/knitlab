@@ -1,7 +1,5 @@
 
 import React from 'react';
-// Fix: Removed unused XIcon import
-// import { XIcon } from './Icon'; // Assuming XIcon is defined in Icon.tsx
 
 interface ModalProps {
   isOpen: boolean;
@@ -33,7 +31,7 @@ export const Modal: React.FC<ModalProps> = ({
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-neutral-800 bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn"
       onClick={onClose}
     >

@@ -1,16 +1,14 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { ChartState, StitchSymbolDef, Tool, Point, SelectionRect, Layer, ContextMenuItem, HoveredGutterInfo, DraggedCellsInfo, ClipboardData, KeyDefinition, KeyInstance, ChartCell } from '../types';
+import { ChartState, StitchSymbolDef, Tool, Point, SelectionRect, ContextMenuItem, HoveredGutterInfo, DraggedCellsInfo, ClipboardData, KeyDefinition, KeyInstance } from '../types';
 import { ContextMenu } from './ContextMenu';
 import {
-    CELL_SIZE, GRID_LINE_COLOR_LIGHT, GRID_LINE_COLOR_DARK, hexToRgba, KEY_ID_EMPTY,
+    CELL_SIZE, GRID_LINE_COLOR_LIGHT, GRID_LINE_COLOR_DARK, KEY_ID_EMPTY,
     DEFAULT_CELL_COLOR_LIGHT, DEFAULT_CELL_COLOR_DARK, GUTTER_SIZE, TRANSPARENT_BACKGROUND_SENTINEL,
     THEME_DEFAULT_BACKGROUND_SENTINEL, DEFAULT_STITCH_COLOR_LIGHT, DEFAULT_STITCH_COLOR_DARK
 } from '../constants';
 import { PlusIcon, XIcon } from './Icon';
 import { drawStitchSymbolOnCanvas } from '../canvasUtils';
-
-// Removed COPYRIGHT constants as footer is now HTML
 
 interface KnitCanvasProps {
   chartState: ChartState;
@@ -296,9 +294,6 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         }
     }
     ctx.restore();
-
-    // Copyright footer drawing removed from here
-
   }, [
       activeLayer, keyPalette, allSymbols, isDarkMode, zoomLevel, viewOffset, canvasSize, rows, cols,
       displaySettings, orientation, noStitchKeyDef, scaledCellSize, actualGridContentWidth, actualGridContentHeight,
@@ -478,9 +473,9 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         if (event.button === 0) { // Left click
           if (activeTool === Tool.Pen) {
             setIsPenDrawing(true);
-            onPenDragSessionStart(); 
+            onPenDragSessionStart();
             await handlePenAction(coords); // Await the first action
-            onPenDragSessionContinue(); 
+            onPenDragSessionContinue();
           } else if (activeTool === Tool.Select) {
             let clickedInsideCurrentSelection = false;
             const normSel = selection ? {

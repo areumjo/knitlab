@@ -1,9 +1,9 @@
 
 import { useState, useCallback } from 'react';
-import { ApplicationState, HistoryEntry } from '../types'; // Updated to ApplicationState
+import { ApplicationState, HistoryEntry } from '../types';
 import { MAX_HISTORY_LENGTH } from '../constants';
 
-export const useChartHistory = (initialState: ApplicationState) => { // Changed to ApplicationState
+export const useChartHistory = (initialState: ApplicationState) => {
   const [history, setHistory] = useState<HistoryEntry<ApplicationState>[]>([{ state: initialState, timestamp: Date.now() }]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -19,9 +19,9 @@ export const useChartHistory = (initialState: ApplicationState) => { // Changed 
       const newState = typeof newStateOrUpdater === 'function'
         ? (newStateOrUpdater as ((prevState: ApplicationState) => ApplicationState))(stateBeforeUpdate)
         : newStateOrUpdater;
-      
+
       const newEntry = { state: newState, timestamp: Date.now() };
-      
+
       // Create the new history array.
       const historyToKeep = prevHistory.slice(0, branchAtIndex + 1);
       let updatedHistory = [...historyToKeep, newEntry];
@@ -30,11 +30,11 @@ export const useChartHistory = (initialState: ApplicationState) => { // Changed 
       if (updatedHistory.length > MAX_HISTORY_LENGTH) {
         updatedHistory = updatedHistory.slice(updatedHistory.length - MAX_HISTORY_LENGTH);
       }
-      
+
       // After `setHistory` schedules its update, `setCurrentIndex` will also be scheduled.
       // React batches these. The new index will be the last item of the `updatedHistory`.
       setCurrentIndex(updatedHistory.length - 1);
-      
+
       return updatedHistory;
     });
   }, [currentIndex, initialState]); // `initialState` is stable. `currentIndex` is the dependency.
@@ -52,7 +52,7 @@ export const useChartHistory = (initialState: ApplicationState) => { // Changed 
         if (currentIndex < currentHistory.length - 1) {
             setCurrentIndex(prev => prev + 1);
         }
-        return currentHistory; 
+        return currentHistory;
     });
   }, [currentIndex]);
 
@@ -64,7 +64,7 @@ export const useChartHistory = (initialState: ApplicationState) => { // Changed 
     setHistory([{ state: newState, timestamp: Date.now() }]);
     setCurrentIndex(0);
   }, []);
-  
+
   // updateCurrentState is used to modify the current history entry without adding a new one.
   // This is typically for non-undoable changes or transient state updates.
   const updateCurrentState = useCallback((updater: (prevState: ApplicationState) => ApplicationState) => { // Changed to ApplicationState

@@ -2,17 +2,17 @@
 import React, { useState } from 'react';
 import { KeyDefinition, StitchSymbolDef, ContextMenuItem } from '../types';
 import { Button } from './Button';
-import { PlusIcon, PenIcon as EditIcon, TrashIcon, CopyIcon as DuplicateIcon } from './Icon'; 
-import { StitchSymbolDisplay } from './StitchSymbolDisplay'; 
-import { 
-    KEY_ID_EMPTY, 
-    TRANSPARENT_BACKGROUND_SENTINEL, 
+import { PlusIcon, PenIcon as EditIcon, TrashIcon, CopyIcon as DuplicateIcon } from './Icon';
+import { StitchSymbolDisplay } from './StitchSymbolDisplay';
+import {
+    KEY_ID_EMPTY,
+    TRANSPARENT_BACKGROUND_SENTINEL,
     THEME_DEFAULT_BACKGROUND_SENTINEL,
     DEFAULT_CELL_COLOR_DARK,
     DEFAULT_CELL_COLOR_LIGHT,
-    GRID_LINE_COLOR_DARK, 
-    GRID_LINE_COLOR_LIGHT 
-} from '../constants'; 
+    GRID_LINE_COLOR_DARK,
+    GRID_LINE_COLOR_LIGHT
+} from '../constants';
 import { ContextMenu } from './ContextMenu';
 
 export interface KeyUsageData {
@@ -24,39 +24,39 @@ interface KeyPaletteProps {
   keyPalette: KeyDefinition[];
   activeKeyId: string | null;
   onKeySelect: (keyId: string) => void;
-  onAddKey: () => void; 
-  onEditKey: (key: KeyDefinition) => void; 
-  onDeleteKey: (keyId: string) => void; 
-  onDuplicateKey: (keyId: string) => void; 
-  allStitchSymbols: StitchSymbolDef[]; 
-  isDarkMode: boolean; 
-  showKeyUsageTally: boolean; 
+  onAddKey: () => void;
+  onEditKey: (key: KeyDefinition) => void;
+  onDeleteKey: (keyId: string) => void;
+  onDuplicateKey: (keyId: string) => void;
+  allStitchSymbols: StitchSymbolDef[];
+  isDarkMode: boolean;
+  showKeyUsageTally: boolean;
   onToggleShowKeyTally: () => void;
-  keyUsageData: KeyUsageData[]; 
+  keyUsageData: KeyUsageData[];
 }
 
 interface KeyPreviewButtonProps {
   keyDef: KeyDefinition;
   isActive: boolean;
   onClick: () => void;
-  onContextMenu: (event: React.MouseEvent, keyDef: KeyDefinition) => void; 
+  onContextMenu: (event: React.MouseEvent, keyDef: KeyDefinition) => void;
   allStitchSymbols: StitchSymbolDef[];
-  shortcutNumber?: number; 
-  isDarkMode: boolean; 
+  shortcutNumber?: number;
+  isDarkMode: boolean;
 }
 
-const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({ 
-    keyDef, 
-    isActive, 
-    onClick, 
-    onContextMenu, 
-    allStitchSymbols, 
+const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
+    keyDef,
+    isActive,
+    onClick,
+    onContextMenu,
+    allStitchSymbols,
     shortcutNumber,
-    isDarkMode, 
+    isDarkMode,
 }) => {
-  
-  const previewButtonSize = 36; 
-  const padding = 2; 
+
+  const previewButtonSize = 36;
+  const padding = 2;
   const innerContentSize = previewButtonSize - (padding * 2);
 
   const renderMxNBackgroundPreview = () => {
@@ -82,7 +82,7 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
             key={`preview-cell-${r}-${c}`}
             style={{
               position: 'absolute',
-              width: `${cellDisplayW - 0.5}px`, 
+              width: `${cellDisplayW - 0.5}px`,
               height: `${cellDisplayH - 0.5}px`,
               left: `${c * cellDisplayW}px`,
               top: `${r * cellDisplayH}px`,
@@ -118,7 +118,7 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
       buttonBackgroundColor = keyDef.backgroundColor;
     }
   } else {
-    buttonBackgroundColor = 'transparent'; 
+    buttonBackgroundColor = 'transparent';
   }
 
   return (
@@ -129,21 +129,21 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
         onContextMenu={(e) => onContextMenu(e, keyDef)}
         className={`p-0 rounded flex items-center justify-center transition-colors relative overflow-hidden
                     ${borderClasses}`}
-        style={{ 
-            width: `${previewButtonSize}px`, 
+        style={{
+            width: `${previewButtonSize}px`,
             height: `${previewButtonSize}px`,
             backgroundColor: buttonBackgroundColor,
          }}
         aria-pressed={isActive}
       >
         { (keyDef.width > 1 || keyDef.height > 1) && renderMxNBackgroundPreview() }
-        
+
         <div className="absolute inset-0 flex items-center justify-center" style={{pointerEvents: 'none'}}>
              <StitchSymbolDisplay
                 keyDef={keyDef}
                 allStitchSymbols={allStitchSymbols}
-                cellSize={unitSizeForDisplay} 
-                isDarkMode={isDarkMode} 
+                cellSize={unitSizeForDisplay}
+                isDarkMode={isDarkMode}
             />
         </div>
         {shortcutNumber && (
@@ -163,25 +163,24 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
   onKeySelect,
   onAddKey,
   onEditKey,
-  onDeleteKey, 
+  onDeleteKey,
   onDuplicateKey,
   allStitchSymbols,
   isDarkMode,
-  showKeyUsageTally, 
-  onToggleShowKeyTally,
+  showKeyUsageTally,
   keyUsageData,
 }) => {
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; keyDef: KeyDefinition; items: ContextMenuItem[] } | null>(null);
 
   const handleKeyContextMenu = (event: React.MouseEvent, keyDef: KeyDefinition) => {
     event.preventDefault();
-    setContextMenu(null); 
+    setContextMenu(null);
 
     const menuItems: ContextMenuItem[] = [
         { label: 'Edit Key', action: () => onEditKey(keyDef) },
         { label: 'Duplicate Key', action: () => onDuplicateKey(keyDef.id) },
     ];
-    
+
     if (keyDef.id !== KEY_ID_EMPTY && keyPalette.length > 1) {
         menuItems.push({ isSeparator: true });
         menuItems.push({ label: 'Delete Key', action: () => onDeleteKey(keyDef.id), disabled: keyPalette.length <=1 });
@@ -197,7 +196,7 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
   let shortcutCounter = 0;
   const paletteWithShortcutsAndTally = keyPalette.map(keyDef => {
     let shortcutNum: number | undefined = undefined;
-    if (shortcutCounter < 5) { 
+    if (shortcutCounter < 5) {
       shortcutCounter++;
       shortcutNum = shortcutCounter;
     }
@@ -207,10 +206,10 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
 
   return (
     <div className="bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 p-1.5 flex items-end space-x-1.5 print:hidden overflow-x-auto overflow-y-hidden custom-scrollbar h-[52px] flex-shrink-0">
-      
+
       {paletteWithShortcutsAndTally.map((keyDefWithDetails) => (
-        <div 
-          key={`key-item-${keyDefWithDetails.id}`} 
+        <div
+          key={`key-item-${keyDefWithDetails.id}`}
           className="flex flex-col items-center flex-shrink-0"
           title={showKeyUsageTally && keyDefWithDetails.tallyCount ? `${keyDefWithDetails.name} - Used: ${keyDefWithDetails.tallyCount}` : keyDefWithDetails.name}
         >
@@ -231,33 +230,33 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
             onContextMenu={handleKeyContextMenu}
             allStitchSymbols={allStitchSymbols}
             shortcutNumber={keyDefWithDetails.shortcutNumber}
-            isDarkMode={isDarkMode} 
+            isDarkMode={isDarkMode}
           />
         </div>
       ))}
-      
+
       <div className="h-7 border-l border-neutral-300 dark:border-neutral-600 ml-2 mr-1 flex-shrink-0 self-center"></div>
 
       <div className="flex flex-col items-center flex-shrink-0 self-center">
         {/* Placeholder for Add button tally if needed, or just to align with keys */}
-        <span className="text-[10px] invisible mb-0.5 leading-none" aria-hidden="true">-</span> 
+        <span className="text-[10px] invisible mb-0.5 leading-none" aria-hidden="true">-</span>
         <Button
             variant="ghost"
             size="sm"
             onClick={onAddKey}
             title="Add New Key"
-            className="p-2 h-[36px] w-[36px] flex-shrink-0 border border-dashed border-neutral-400 dark:border-neutral-500 hover:border-primary" 
+            className="p-2 h-[36px] w-[36px] flex-shrink-0 border border-dashed border-neutral-400 dark:border-neutral-500 hover:border-primary"
         >
             <PlusIcon />
         </Button>
       </div>
-      
+
       {contextMenu?.visible && (
-        <ContextMenu 
-          x={contextMenu.x} 
-          y={contextMenu.y} 
-          items={contextMenu.items} 
-          onClose={closeContextMenu} 
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenu.items}
+          onClose={closeContextMenu}
         />
       )}
     </div>

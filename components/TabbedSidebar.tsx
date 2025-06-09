@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Layer, Point, ChartState as GlobalChartState, TabId, ChartState } from '../types'; 
+import { Layer, Point, ChartState as GlobalChartState, TabId, ChartState } from '../types';
 import { LayerPanel } from './LayerPanel';
 import { SheetPanel } from './SheetPanel'; // Import SheetPanel
-import { TabLayersIcon, TextIcon, GripVerticalIcon, SheetsIcon, ImageIcon } from './Icon'; 
+import { TabLayersIcon, GripVerticalIcon, SheetsIcon, ImportImageIcon } from './Icon';
 
 interface TabDefinition {
   id: TabId | 'image-import'; // Allow 'image-import' as a valid TabId here for TABS array
@@ -12,10 +12,9 @@ interface TabDefinition {
 }
 
 const TABS: TabDefinition[] = [
-  { id: 'sheets', label: 'Sheets', icon: <SheetsIcon /> }, 
+  { id: 'sheets', label: 'Sheets', icon: <SheetsIcon /> },
   { id: 'layers', label: 'Layers', icon: <TabLayersIcon /> },
-  { id: 'image-import', label: 'Image Import', icon: <ImageIcon /> },
-  // { id: 'text', label: 'Text Pattern', icon: <TextIcon /> }, // Removed Text Pattern Tab
+  { id: 'image-import', label: 'Image Import', icon: <ImportImageIcon /> },
 ];
 
 const ICON_RIBBON_WIDTH = 56; // pixels
@@ -34,19 +33,19 @@ interface TabbedSidebarProps {
   onSelectAllActiveLayer: () => void;
 
   // SheetPanel Props
-  allSheets: ChartState[]; 
+  allSheets: ChartState[];
   activeSheetId: string | null;
   onSheetSelect: (id: string) => void;
   onAddSheet: () => void;
   onRemoveSheet: (id: string) => void;
   onRenameSheet: (id: string, newName: string) => void;
-  
+
   // Tab Management Props
   activeTab: TabId;
   onTabSelect: (tabId: TabId) => void;
   isSidebarContentVisible: boolean;
   onToggleSidebarContentVisibility: () => void;
-  onOpenImageProcessor: () => void; 
+  onOpenImageProcessor: () => void;
   onActualWidthChange?: (width: number) => void; // New prop
 }
 
@@ -55,7 +54,7 @@ const isContentTabId = (id: TabId | 'image-import'): id is TabId => {
 };
 
 export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
-  const [resizableWidth, setResizableWidth] = useState(DEFAULT_CONTENT_WIDTH); 
+  const [resizableWidth, setResizableWidth] = useState(DEFAULT_CONTENT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +74,7 @@ export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
     // Calculate new width based on mouse position relative to the document,
     // not the sidebar's own left edge, to account for sidebar moving.
     const newTotalWidth = e.clientX - sidebarRect.left + (sidebarRef.current.offsetLeft || 0) ;
-    
+
     let newContentWidth = newTotalWidth - ICON_RIBBON_WIDTH;
     newContentWidth = Math.max(minResizableWidth, Math.min(maxResizableWidth, newContentWidth));
     setResizableWidth(newContentWidth);
@@ -102,18 +101,18 @@ export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
     }
 
     if (props.activeTab === tabId && props.isSidebarContentVisible) {
-      props.onToggleSidebarContentVisibility(); 
+      props.onToggleSidebarContentVisibility();
     } else {
       props.onTabSelect(tabId);
       if (!props.isSidebarContentVisible) {
-        props.onToggleSidebarContentVisibility(); 
+        props.onToggleSidebarContentVisibility();
       }
     }
   };
 
   const renderTabContent = () => {
     switch (props.activeTab) {
-      case 'sheets': 
+      case 'sheets':
         return (
           <SheetPanel
             sheets={props.allSheets}
@@ -140,9 +139,9 @@ export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
         return null;
     }
   };
-  
+
   const currentTotalWidth = props.isSidebarContentVisible && isContentTabId(props.activeTab)
-    ? ICON_RIBBON_WIDTH + resizableWidth 
+    ? ICON_RIBBON_WIDTH + resizableWidth
     : ICON_RIBBON_WIDTH;
 
   useEffect(() => {
@@ -159,14 +158,14 @@ export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
       style={{ width: `${currentTotalWidth}px` }}
     >
       {/* Tab Buttons Column */}
-      <div 
+      <div
         className="flex flex-col items-center bg-neutral-200 dark:bg-neutral-900 border-r border-neutral-300 dark:border-neutral-700 py-2 space-y-1 flex-shrink-0"
         style={{ width: `${ICON_RIBBON_WIDTH}px` }}
       >
         {TABS.map((tab) => {
           const isActuallyContentTab = isContentTabId(tab.id);
           const isActive = isActuallyContentTab && props.activeTab === tab.id && props.isSidebarContentVisible;
-          
+
           return (
             <button
               key={tab.id}
@@ -194,12 +193,12 @@ export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
           </div>
         </div>
       )}
-      
+
       {/* Resizer */}
       {props.isSidebarContentVisible && isContentTabId(props.activeTab) && (
         <div
           className="absolute top-0 h-full w-2 cursor-col-resize flex items-center justify-center group"
-          style={{ right: '0px' }} 
+          style={{ right: '0px' }}
           onMouseDown={handleMouseDownResize}
         >
           <GripVerticalIcon className="text-neutral-400 dark:text-neutral-500 group-hover:text-primary w-2.5 h-8 opacity-30 group-hover:opacity-100 transition-opacity" />

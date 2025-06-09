@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { UploadIcon } from './Icon';
 import { ProcessedImageData } from '../types';
 import { MAX_CHART_ROWS, MAX_CHART_COLS } from '../constants';
 
@@ -13,7 +12,7 @@ interface ImageProcessorModalProps {
   isDarkMode: boolean;
 }
 
-const MAX_PREVIEW_IMAGE_WIDTH = 500; 
+const MAX_PREVIEW_IMAGE_WIDTH = 500;
 
 export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen, onClose, onCreateChart, isDarkMode }) => {
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
@@ -29,17 +28,17 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
   const dragStartOffsetRef = useRef({ x: 0, y: 0 });
   const initialSelectionForResizeRef = useRef({ ...selection });
 
-  const [gridConfig, setGridConfig] = useState({ 
-    cols: 20, 
-    rows: 20, 
-    numColors: 8, 
-    poolingAlgorithm: 'mean' as 'mean' | 'mode' 
+  const [gridConfig, setGridConfig] = useState({
+    cols: 20,
+    rows: 20,
+    numColors: 8,
+    poolingAlgorithm: 'mean' as 'mean' | 'mode'
   });
   const [isLoading, setIsLoading] = useState(false);
   const isLoadingRef = useRef(false); // Ref to prevent re-entry in processAndDisplay
 
   const [maxOriginalColors, setMaxOriginalColors] = useState<number | null>(null);
-  
+
   const [outputGridData, setOutputGridData] = useState<string[] | null>(null);
   const [outputPaletteData, setOutputPaletteData] = useState<string[] | null>(null);
   const [LValueUsed, setLValueUsed] = useState<string>("N/A");
@@ -75,7 +74,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
     setCurrentPaletteForRemap(new Set());
     setRemapColorInputs({});
   }, []);
-  
+
   const handleCloseModal = useCallback(() => {
     cleanupState();
     onClose();
@@ -84,13 +83,13 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      cleanupState(); 
+      cleanupState();
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          setOriginalImage(img); 
-          
+          setOriginalImage(img);
+
           const sourceCtx = sourceCanvasRef.current?.getContext('2d');
           if (sourceCanvasRef.current && sourceCtx) {
             sourceCanvasRef.current.width = img.width;
@@ -103,11 +102,11 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
 
           const dWidthInitial = img.width * preliminaryScale;
           const dHeightInitial = img.height * preliminaryScale;
-          setSelection({ 
-            x: Math.max(0, dWidthInitial * 0.15), 
-            y: Math.max(0, dHeightInitial * 0.15), 
-            width: Math.max(20, dWidthInitial * 0.7), 
-            height: Math.max(20, dHeightInitial * 0.7) 
+          setSelection({
+            x: Math.max(0, dWidthInitial * 0.15),
+            y: Math.max(0, dHeightInitial * 0.15),
+            width: Math.max(20, dWidthInitial * 0.7),
+            height: Math.max(20, dHeightInitial * 0.7)
           });
         };
         img.src = e.target?.result as string;
@@ -115,7 +114,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
       reader.readAsDataURL(file);
     }
   };
-  
+
   useEffect(() => {
     if (isOpen && originalImage && displayCanvasRef.current && imageContainerRef.current) {
       let parentEffectiveWidth = MAX_PREVIEW_IMAGE_WIDTH;
@@ -126,24 +125,24 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
       const newEffectiveScale = Math.min(1, targetWidthForScaling / originalImage.width);
 
       if (Math.abs(newEffectiveScale - displayScale) > 0.001) {
-          setDisplayScale(newEffectiveScale); 
-          return; 
+          setDisplayScale(newEffectiveScale);
+          return;
       }
-      
-      const actualRenderWidth = originalImage.width * displayScale; 
+
+      const actualRenderWidth = originalImage.width * displayScale;
       const actualRenderHeight = originalImage.height * displayScale;
-      
+
       displayCanvasRef.current.width = actualRenderWidth;
       displayCanvasRef.current.height = actualRenderHeight;
       const displayCtx = displayCanvasRef.current.getContext('2d');
       if (displayCtx) {
-        displayCtx.clearRect(0, 0, actualRenderWidth, actualRenderHeight); 
+        displayCtx.clearRect(0, 0, actualRenderWidth, actualRenderHeight);
         displayCtx.drawImage(originalImage, 0, 0, actualRenderWidth, actualRenderHeight);
       }
       imageContainerRef.current.style.width = `${actualRenderWidth}px`;
       imageContainerRef.current.style.height = `${actualRenderHeight}px`;
     }
-  }, [isOpen, originalImage, displayScale, isDarkMode]); 
+  }, [isOpen, originalImage, displayScale, isDarkMode]);
 
 
   const handleSelectionMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -163,7 +162,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
     dragStartOffsetRef.current = { x: e.clientX, y: e.clientY };
     initialSelectionForResizeRef.current = { ...selection };
   };
-  
+
   const handleDocumentMouseMove = useCallback((e: MouseEvent) => {
     if (!originalImage || isLoadingRef.current) return; // Use isLoadingRef for gatekeeping
 
@@ -183,10 +182,10 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
       if (isResizingSelection.includes('n')) { nY += dY; nH -= dY; }
       if (isResizingSelection.includes('s')) { nH += dY; }
 
-      const minS = 10; 
+      const minS = 10;
       if (nW < minS) { if (isResizingSelection.includes('w')) nX = initialSelectionForResizeRef.current.x + initialSelectionForResizeRef.current.width - minS; nW = minS; }
       if (nH < minS) { if (isResizingSelection.includes('n')) nY = initialSelectionForResizeRef.current.y + initialSelectionForResizeRef.current.height - minS; nH = minS; }
-      
+
       nX = Math.max(0, nX);
       nY = Math.max(0, nY);
       nW = Math.min(nW, displayCanvasRef.current.width - nX);
@@ -303,7 +302,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
     }
     return { pixelatedData, uniqueColors };
   }, [ gridConfig.cols, gridConfig.rows, selection.x, selection.y, selection.width, selection.height, displayScale ]);
-  
+
   const calculateMaxColorsInSelection = useCallback(() => {
     if (!originalImage || selection.width <= 0 || selection.height <= 0 || !sourceCanvasRef.current) {
       setMaxOriginalColors(null); return;
@@ -323,22 +322,22 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
 
   const processAndDisplay = useCallback(async () => {
     if (!originalImage || selection.width <= 0 || selection.height <= 0 || isLoadingRef.current) return;
-    
+
     isLoadingRef.current = true;
     setIsLoading(true);
-    
+
     calculateMaxColorsInSelection();
-    await new Promise(resolve => setTimeout(resolve, 10)); 
+    await new Promise(resolve => setTimeout(resolve, 10));
 
     const { numColors: targetNumColors, poolingAlgorithm } = gridConfig;
     let L_base = 0, basePixelatedData: string[] = [], baseUniqueColors = new Set<string>();
     let bestLForBase = 0, colorsAtBestLForBase = 0, minDiffForBaseSearch = Infinity;
-    const maxLToTry = 16; 
+    const maxLToTry = 16;
 
     for (let currentL = 2; currentL <= maxLToTry; currentL++) {
         const { pixelatedData, uniqueColors } = generatePixelDataWithLevels(currentL, poolingAlgorithm);
         const numUnique = uniqueColors.size;
-        if (numUnique >= targetNumColors) { 
+        if (numUnique >= targetNumColors) {
             if (L_base === 0 || numUnique < baseUniqueColors.size) { L_base = currentL; basePixelatedData = pixelatedData; baseUniqueColors = uniqueColors; }
         }
         const diff = Math.abs(numUnique - targetNumColors);
@@ -348,7 +347,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
         }
         if (poolingAlgorithm === 'mode' && numUnique <= targetNumColors && numUnique < 5 && currentL > 5) break;
     }
-    if (L_base === 0) { 
+    if (L_base === 0) {
         L_base = bestLForBase || 2;
         const res = generatePixelDataWithLevels(L_base, poolingAlgorithm);
         basePixelatedData = res.pixelatedData; baseUniqueColors = res.uniqueColors;
@@ -384,7 +383,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
         }
     }
     setMergingPerformed(mPerformed);
-    
+
     const finalPixelData = workingPixelData.map(color => pixelColorMap[color] || color);
     setCurrentPixelDataForRemap(finalPixelData);
     const finalPalette = new Set(currentPaletteArray);
@@ -458,7 +457,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
 
   const handleResetColorMap = () => {
     if (isLoadingRef.current || !originalImage) return;
-    processAndDisplay(); 
+    processAndDisplay();
   };
 
   const handleFinalizeChart = () => {
@@ -466,12 +465,12 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
       alert("No processed image data to create chart from."); return;
     }
     const processedImageData: ProcessedImageData = {
-      gridData: { 
-        rows: Math.min(gridConfig.rows, MAX_CHART_ROWS), 
-        cols: Math.min(gridConfig.cols, MAX_CHART_COLS), 
-        colors: outputGridData.map(rgbColor => rgbToHex(rgbColor)), 
+      gridData: {
+        rows: Math.min(gridConfig.rows, MAX_CHART_ROWS),
+        cols: Math.min(gridConfig.cols, MAX_CHART_COLS),
+        colors: outputGridData.map(rgbColor => rgbToHex(rgbColor)),
       },
-      palette: outputPaletteData.map(rgbColor => rgbToHex(rgbColor)), 
+      palette: outputPaletteData.map(rgbColor => rgbToHex(rgbColor)),
     };
     onCreateChart(processedImageData);
     handleCloseModal();
@@ -495,12 +494,12 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                 <canvas ref={displayCanvasRef} className="block cursor-crosshair max-w-full" />
                 <div ref={selectionBoxRef} onMouseDown={handleSelectionMouseDown} className="absolute border-2 border-dashed border-red-500 box-border cursor-move" style={{ display: 'none' }}>
                     {['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'].map(handle => (
-                        <div key={handle} onMouseDown={(e) => handleResizeHandleMouseDown(e, handle)} className={`absolute w-2.5 h-2.5 bg-blue-500 border border-white box-border 
-                            ${handle.includes('n') ? 'top-[-5px]' : ''} ${handle.includes('s') ? 'bottom-[-5px]' : ''} ${handle.includes('w') ? 'left-[-5px]' : ''} ${handle.includes('e') ? 'right-[-5px]' : ''} 
-                            ${(handle === 'n' || handle === 's') ? 'left-1/2 -translate-x-1/2 cursor-ns-resize' : ''} 
+                        <div key={handle} onMouseDown={(e) => handleResizeHandleMouseDown(e, handle)} className={`absolute w-2.5 h-2.5 bg-blue-500 border border-white box-border
+                            ${handle.includes('n') ? 'top-[-5px]' : ''} ${handle.includes('s') ? 'bottom-[-5px]' : ''} ${handle.includes('w') ? 'left-[-5px]' : ''} ${handle.includes('e') ? 'right-[-5px]' : ''}
+                            ${(handle === 'n' || handle === 's') ? 'left-1/2 -translate-x-1/2 cursor-ns-resize' : ''}
                             ${(handle === 'w' || handle === 'e') ? 'top-1/2 -translate-y-1/2 cursor-ew-resize' : ''}
-                            ${handle === 'nw' ? 'cursor-nwse-resize' : ''} ${handle === 'ne' ? 'cursor-nesw-resize' : ''} 
-                            ${handle === 'sw' ? 'cursor-nesw-resize' : ''} ${handle === 'se' ? 'cursor-nwse-resize' : ''} 
+                            ${handle === 'nw' ? 'cursor-nwse-resize' : ''} ${handle === 'ne' ? 'cursor-nesw-resize' : ''}
+                            ${handle === 'sw' ? 'cursor-nesw-resize' : ''} ${handle === 'se' ? 'cursor-nwse-resize' : ''}
                         `}/>
                     ))}
                 </div>
@@ -513,19 +512,19 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                 <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                         <label htmlFor="grid-cols-modal">Grid Cols:</label>
-                        <input 
-                            type="number" id="grid-cols-modal" value={gridConfig.cols} 
-                            onChange={e => setGridConfig(p => ({...p, cols: Math.min(MAX_CHART_COLS, Math.max(1, parseInt(e.target.value) || 1))}))} 
-                            min="1" max={MAX_CHART_COLS} 
+                        <input
+                            type="number" id="grid-cols-modal" value={gridConfig.cols}
+                            onChange={e => setGridConfig(p => ({...p, cols: Math.min(MAX_CHART_COLS, Math.max(1, parseInt(e.target.value) || 1))}))}
+                            min="1" max={MAX_CHART_COLS}
                             className="w-full mt-1 p-1 border rounded dark:bg-neutral-700 dark:border-neutral-600"
                         />
                     </div>
                     <div>
                         <label htmlFor="grid-rows-modal">Grid Rows:</label>
-                        <input 
-                            type="number" id="grid-rows-modal" value={gridConfig.rows} 
-                            onChange={e => setGridConfig(p => ({...p, rows: Math.min(MAX_CHART_ROWS, Math.max(1, parseInt(e.target.value) || 1))}))} 
-                            min="1" max={MAX_CHART_ROWS} 
+                        <input
+                            type="number" id="grid-rows-modal" value={gridConfig.rows}
+                            onChange={e => setGridConfig(p => ({...p, rows: Math.min(MAX_CHART_ROWS, Math.max(1, parseInt(e.target.value) || 1))}))}
+                            min="1" max={MAX_CHART_ROWS}
                             className="w-full mt-1 p-1 border rounded dark:bg-neutral-700 dark:border-neutral-600"
                         />
                     </div>
@@ -543,11 +542,11 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
             <div>
                 <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">3. Pixelated Output & Palette:</h3>
                 <div className="border border-neutral-300 dark:border-neutral-600 bg-neutral-200 dark:bg-neutral-700 p-1 mx-auto mb-2" style={{ width: 'fit-content', maxWidth: '100%'}}>
-                    <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: `repeat(${gridConfig.cols}, 1fr)`, 
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(${gridConfig.cols}, 1fr)`,
                         gridTemplateRows: `repeat(${gridConfig.rows}, 1fr)`,
-                        width: outputGridDisplaySize, 
+                        width: outputGridDisplaySize,
                         height: Math.max(10, outputGridDisplaySize / outputGridAspectRatio), // Ensure min height
                         imageRendering: 'pixelated' as any,
                         border: '1px solid #333'
@@ -578,7 +577,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
           )}
         </div>
       </div>
-      
+
       <canvas ref={sourceCanvasRef} style={{ display: 'none' }} />
 
       <div className="mt-auto pt-4 border-t border-neutral-200 dark:border-neutral-700 flex justify-end space-x-2">

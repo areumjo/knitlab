@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { ChartState, KeyDefinition, StitchSymbolDef } from '../types';
-import { ZOOM_LEVELS_BASE } from '../constants'; // For default zoom options
 
 interface ExportPreviewModalProps {
   isOpen: boolean;
@@ -72,7 +71,7 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
       setIsLoadingPreview(false);
     }
   }, [chartState, keyPalette, allSymbols, isDarkMode, exportZoom, generateChartJpeg]);
-  
+
   // Auto-generate preview when modal opens or zoom changes
   useEffect(() => {
     if (isOpen) {
