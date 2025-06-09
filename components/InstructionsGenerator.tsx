@@ -1,17 +1,15 @@
-
 import React, { useState, useMemo } from 'react';
-import { ChartState, StitchSymbolDef, KeyDefinition, Layer, KeyCellContent } from '../types'; 
+import { ChartState, StitchSymbolDef, KeyDefinition } from '../types';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { DEFAULT_STITCH_SYMBOLS, KEY_ID_EMPTY, ABBREVIATION_SKIP_SENTINEL } from '../constants';
 
-
 interface InstructionsGeneratorProps {
   isOpen: boolean;
   onClose: () => void;
-  chartState: ChartState; 
-  stitchSymbols: StitchSymbolDef[]; 
-  keyPalette: KeyDefinition[]; 
+  chartState: ChartState;
+  stitchSymbols: StitchSymbolDef[];
+  keyPalette: KeyDefinition[];
 }
 
 const resolveKeyAbbreviationForInstructions = (keyDef: KeyDefinition | null | undefined, allStitchSymbols: StitchSymbolDef[]): string => {
@@ -43,18 +41,17 @@ const resolveKeyAbbreviationForInstructions = (keyDef: KeyDefinition | null | un
   return keyDef.name.substring(0, 1).toUpperCase() || '?'; // Fallback to first letter of name or '?'
 };
 
-
 const generateInstructionsText = (chart: ChartState, symbols: StitchSymbolDef[], keyPalette: KeyDefinition[]): string => {
   let output = `Chart: ${chart.name}\n`;
   output += `Size: ${chart.rows} rows x ${chart.cols} columns\n`;
   output += `Orientation: ${chart.orientation}\n\n`;
-  
-  let currentRowKeyId: string | null = null; 
+
+  let currentRowKeyId: string | null = null;
 
   for (let r_idx = 0; r_idx < chart.rows; r_idx++) {
     const rowNum = chart.orientation === 'bottom-up' ? chart.rows - r_idx : r_idx + 1;
     let rowStr = `Row ${rowNum}: `;
-    currentRowKeyId = null; 
+    currentRowKeyId = null;
     let count = 0;
 
     for (let c_idx = 0; c_idx < chart.cols; c_idx++) {
@@ -63,9 +60,9 @@ const generateInstructionsText = (chart: ChartState, symbols: StitchSymbolDef[],
           const layer = chart.layers[i];
           if(layer.isVisible) {
               const keyOnThisLayer = layer.grid[r_idx]?.[c_idx]?.keyId;
-              if(keyOnThisLayer !== null) { 
+              if(keyOnThisLayer !== null) {
                   cellKeyId = keyOnThisLayer;
-                  break; 
+                  break;
               }
           }
       }
@@ -79,17 +76,17 @@ const generateInstructionsText = (chart: ChartState, symbols: StitchSymbolDef[],
           const currentKeyDef = keyPalette.find(k => k.id === currentRowKeyId);
           if (currentKeyDef && currentKeyDef.abbreviation !== ABBREVIATION_SKIP_SENTINEL && currentKeyDef.id !== KEY_ID_EMPTY) {
             const abbr = resolveKeyAbbreviationForInstructions(currentKeyDef, symbols);
-            if (abbr) { 
+            if (abbr) {
               rowStr += `${count > 1 ? count : ''}${abbr}, `;
             }
           }
         }
-        currentRowKeyId = cellKeyId; 
+        currentRowKeyId = cellKeyId;
         const currentKeyDefForCount = keyPalette.find(k => k.id === cellKeyId);
         count = (currentKeyDefForCount && (currentKeyDefForCount.abbreviation === ABBREVIATION_SKIP_SENTINEL || currentKeyDefForCount.id === KEY_ID_EMPTY)) ? 0 : 1;
       }
     }
-    
+
     if (currentRowKeyId !== null && count > 0) {
       const currentKeyDef = keyPalette.find(k => k.id === currentRowKeyId);
        if (currentKeyDef && currentKeyDef.abbreviation !== ABBREVIATION_SKIP_SENTINEL && currentKeyDef.id !== KEY_ID_EMPTY) {
@@ -99,7 +96,7 @@ const generateInstructionsText = (chart: ChartState, symbols: StitchSymbolDef[],
           }
        }
     }
-    
+
     if (rowStr.endsWith(', ')) {
       rowStr = rowStr.slice(0, -2);
     }
@@ -125,24 +122,24 @@ const generateInstructionsText = (chart: ChartState, symbols: StitchSymbolDef[],
                 }
             }
         }
-        if (keyIdInCellOverall) { 
+        if (keyIdInCellOverall) {
             const keyDef = keyPalette.find(k => k.id === keyIdInCellOverall);
             if (keyDef && keyDef.id !== KEY_ID_EMPTY && keyDef.abbreviation !== ABBREVIATION_SKIP_SENTINEL &&
-                ( (keyDef.cells && keyDef.cells.flat().some(c => c !== null)) || (keyDef.lines && keyDef.lines.length > 0) ) ) { 
+                ( (keyDef.cells && keyDef.cells.flat().some(c => c !== null)) || (keyDef.lines && keyDef.lines.length > 0) ) ) {
                  usedKeyIds.add(keyIdInCellOverall);
             }
         }
     }
   }
-  
+
   keyPalette
-    .filter(kDef => usedKeyIds.has(kDef.id)) 
+    .filter(kDef => usedKeyIds.has(kDef.id))
     .forEach(kDef => {
       let symbolRepresentation = resolveKeyAbbreviationForInstructions(kDef, symbols);
-      
-      if (symbolRepresentation) { 
+
+      if (symbolRepresentation) {
         output += `${symbolRepresentation} = ${kDef.name}`;
-        
+
         let descriptionPart = "";
         if (kDef.cells && kDef.cells.length > 0 && kDef.cells[0].length > 0) {
             const firstCell = kDef.cells[0][0];
@@ -163,7 +160,7 @@ const generateInstructionsText = (chart: ChartState, symbols: StitchSymbolDef[],
         output += '\n';
       }
   });
-  
+
   return output;
 };
 
@@ -171,7 +168,7 @@ export const InstructionsGenerator: React.FC<InstructionsGeneratorProps> = ({ is
   const [generatedText, setGeneratedText] = useState('');
 
   useMemo(() => {
-    if (isOpen && chartState && keyPalette) { 
+    if (isOpen && chartState && keyPalette) {
       setGeneratedText(generateInstructionsText(chartState, stitchSymbols, keyPalette));
     }
   }, [isOpen, chartState, stitchSymbols, keyPalette]);
@@ -195,7 +192,7 @@ export const InstructionsGenerator: React.FC<InstructionsGeneratorProps> = ({ is
           This is a basic instruction generator. Complex patterns or colorwork may need manual refinement. Keys set to be excluded from instructions are omitted.
         </p>
       </div>
-      <div className="pt-5"> 
+      <div className="pt-5">
         <div className="flex justify-end space-x-2">
           <Button variant="ghost" onClick={onClose}>Close</Button>
           <Button onClick={handleCopy} variant="primary">Copy to Clipboard</Button>

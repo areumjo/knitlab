@@ -399,7 +399,6 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
         finalAbbreviation = editedAbbreviation === null ? "" : editedAbbreviation;
     }
 
-
     const keyDefToSave: KeyDefinition = {
       id,
       name: finalKeyName,

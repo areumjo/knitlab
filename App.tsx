@@ -57,7 +57,6 @@ const RESPONSIVE_BREAKPOINT = 768; // md breakpoint for lifting elements
 const MINIMAP_SIDE_MARGIN = 8; // Gap between sidebar and minimap, and minimap and screen edge (if applicable)
 const ICON_RIBBON_WIDTH_CONST = 56; // From TabbedSidebar
 
-
 export const App: React.FC = () => {
   const {
     currentState: applicationState,
@@ -87,7 +86,6 @@ export const App: React.FC = () => {
   const [isChartSettingsModalOpen, setIsChartSettingsModalOpen] = useState(false);
   const [isExportPreviewModalOpen, setIsExportPreviewModalOpen] = useState(false);
   const [isDeveloperMenuOpen, setIsDeveloperMenuOpen] = useState(false);
-
 
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -170,14 +168,12 @@ export const App: React.FC = () => {
     });
   }, [selection, isDraggingSelection, isActuallyDrawingSel]);
 
-
   const setActiveKeyId = useCallback((keyId: string | null) => {
     setActiveKeyIdInternal(keyId);
     if (keyId !== null) {
         setActiveTool(Tool.Pen);
     }
   }, [setActiveTool]);
-
 
   useEffect(() => {
     const lightThemeSymbolColor = DEFAULT_STITCH_COLOR_LIGHT;
@@ -433,7 +429,6 @@ export const App: React.FC = () => {
     rows: number;
     cols: number;
     orientation: ChartState['orientation'];
-    defaultCellColor: string;
     displaySettings: ChartDisplaySettings;
   }) => {
     recordAppChangeRef.current(prevAppState => {
@@ -442,11 +437,6 @@ export const App: React.FC = () => {
         const oldSheet = prevAppState.sheets[currentSheetIndex];
 
         let updatedPalette = prevAppState.keyPalette;
-        const noStitchKeyIndex = updatedPalette.findIndex(k => k.id === KEY_ID_EMPTY);
-        if (noStitchKeyIndex !== -1 && updatedPalette[noStitchKeyIndex].backgroundColor !== settings.defaultCellColor) {
-            updatedPalette = [...updatedPalette];
-            updatedPalette[noStitchKeyIndex] = { ...updatedPalette[noStitchKeyIndex], backgroundColor: settings.defaultCellColor };
-        }
 
         const newLayers = oldSheet.layers.map(layer => {
             const resizedPlacements = resizeKeyPlacements(layer.keyPlacements, updatedPalette, settings.rows, settings.cols);
@@ -629,7 +619,6 @@ export const App: React.FC = () => {
     const modifier = (currentLayer: Layer, chartRows: number, chartCols: number, currentKeyPalette: KeyDefinition[]) =>
         applyKeyToLayerPlacements(currentLayer, keyDefToApply, anchorCoords, chartRows, chartCols, currentKeyPalette);
 
-    // activeTool is guaranteed to be Tool.Pen here by KnitCanvas's calling logic.
     if (isCurrentlyDragPaintingRef.current) { // True only for subsequent drag points
       updateCurrentState(prevAppState => modifyActiveSheetLayerWithModifier(prevAppState, modifier));
     } else { // False for single click or first point of drag
@@ -1291,8 +1280,6 @@ export const App: React.FC = () => {
     setIsImageProcessorModalOpen(false);
   };
 
-  const currentDefaultCellBackgroundColor = applicationState.keyPalette.find(k => k.id === KEY_ID_EMPTY)?.backgroundColor || (isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT);
-
   const [dynamicBottomStyle, setDynamicBottomStyle] = useState({ miniMap: MINIMAP_DEFAULT_BOTTOM, footer: FOOTER_DEFAULT_BOTTOM });
   const floatingToolbarRef = useRef<HTMLDivElement>(null);
   const [devContextMenu, setDevContextMenu] = useState<{ visible: boolean; x: number; y: number; items: ContextMenuItem[] } | null>(null);
@@ -1649,7 +1636,6 @@ export const App: React.FC = () => {
             isOpen={isChartSettingsModalOpen}
             onClose={() => setIsChartSettingsModalOpen(false)}
             currentSettings={activeSheet}
-            currentDefaultCellColor={currentDefaultCellBackgroundColor}
             onSave={handleChartSettingsSave}
         />
       )}

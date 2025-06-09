@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChartState, Layer, ChartDisplaySettings } from '../types'; 
+import { ChartState, ChartDisplaySettings } from '../types';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { INITIAL_CHART_STATE, createChartGrid, MAX_CHART_ROWS, MAX_CHART_COLS } from '../constants'; 
+import { INITIAL_CHART_STATE, MAX_CHART_ROWS, MAX_CHART_COLS } from '../constants';
 
 interface CoreChartSettings { // Define CoreChartSettings for clarity
   rows: number;
@@ -14,22 +14,19 @@ interface CoreChartSettings { // Define CoreChartSettings for clarity
 interface ChartSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentSettings: ChartState; 
-  currentDefaultCellColor: string; // New prop for the sheet's effective default background
-  onSave: (newCoreSettings: CoreChartSettings & { defaultCellColor: string }) => void;
+  currentSettings: ChartState;
+  onSave: (newCoreSettings: CoreChartSettings) => void;
 }
 
 export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
   isOpen,
   onClose,
   currentSettings,
-  currentDefaultCellColor, // New
   onSave,
 }) => {
   const [rows, setRows] = useState(currentSettings.rows);
   const [cols, setCols] = useState(currentSettings.cols);
   const [orientation, setOrientation] = useState(currentSettings.orientation);
-  const [defaultCellColorLocal, setDefaultCellColorLocal] = useState(currentDefaultCellColor); // Use prop
   const [displaySettings, setDisplaySettings] = useState<ChartDisplaySettings>(
     currentSettings.displaySettings ? { ...currentSettings.displaySettings } : { ...INITIAL_CHART_STATE.displaySettings }
   );
@@ -41,16 +38,13 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
         setRows(currentSettings.rows);
         setCols(currentSettings.cols);
         setOrientation(currentSettings.orientation);
-        setDefaultCellColorLocal(currentDefaultCellColor); // Use prop
-        
         const newInitialDisplaySettings = currentSettings.displaySettings
-                                          ? { ...currentSettings.displaySettings } 
+                                          ? { ...currentSettings.displaySettings }
                                           : { ...INITIAL_CHART_STATE.displaySettings };
         setDisplaySettings(newInitialDisplaySettings);
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, currentSettings, currentDefaultCellColor]); // Add currentDefaultCellColor
-
+  }, [isOpen, currentSettings]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,8 +52,7 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
       rows,
       cols,
       orientation,
-      defaultCellColor: defaultCellColorLocal, // This is the color selected in the modal
-      displaySettings, 
+      displaySettings,
     });
     onClose();
   };
@@ -111,17 +104,6 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
             <option value="in-the-round">In The Round</option>
           </select>
         </div>
-        <div>
-          <label htmlFor="defaultCellColor" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Default Cell Background</label>
-          <input
-            type="color"
-            id="defaultCellColor"
-            value={defaultCellColorLocal}
-            onChange={(e) => setDefaultCellColorLocal(e.target.value)}
-            className="mt-1 block w-full h-10 p-0 border-none rounded-md cursor-pointer"
-          />
-        </div>
-
         <div className="pt-2 border-t border-neutral-300 dark:border-neutral-600">
             <h4 className="text-md font-medium text-neutral-700 dark:text-neutral-300 mb-2">Row/Column Counters</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

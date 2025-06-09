@@ -40,7 +40,7 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
       .then(() => alert('Data copied to clipboard!'))
       .catch(err => console.error('Failed to copy data: ', err));
   };
-  
+
   const renderContent = () => {
     let dataToShow = '';
     let ariaLabel = '';
@@ -64,8 +64,9 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
               value={jsonToLoad}
               onChange={(e) => setJsonToLoad(e.target.value)}
               placeholder="Paste application state JSON here..."
-              className="w-full flex-grow p-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 font-mono text-xs"
+              className="w-full flex-grow resize-none p-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-700 font-mono text-xs"
               aria-label="Paste application state JSON"
+              rows={24}
             />
             <Button onClick={handleLoad} variant="primary" className="self-end">Load Data</Button>
           </div>
@@ -90,7 +91,12 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
           </div>
         );
       default:
-        return <p className="text-sm text-neutral-500 dark:text-neutral-400 p-4">Select an option to view data, load data, or change settings.</p>;
+        return (
+          <div className="space-y-1 p-2">
+            <a href="https://www.linkedin.com/in/areum-jo/" target="_blank" rel="noopener noreferrer" className="block text-center text-primary hover:underline">https://www.linkedin.com/in/areum-jo/</a>
+            <img src="../assets/areum-knitlab-i-did-that.png" alt="Areum Kintlab - I did that" className="w-full h-auto rounded-md" />
+          </div>
+        );
     }
 
     if (activeView === 'history' || activeView === 'current') {
@@ -99,7 +105,8 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
                 <textarea
                     readOnly
                     value={dataToShow}
-                    className="w-full flex-grow p-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-neutral-50 dark:bg-neutral-700 font-mono text-xs"
+                    className="w-full flex-grow resize-none p-2 border border-neutral-300 dark:border-neutral-600 rounded-md bg-neutral-50 dark:bg-neutral-700 font-mono text-xs"
+                    rows={24}
                     aria-label={ariaLabel}
                 />
                 {showCopyButton && (
@@ -112,14 +119,14 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
   };
 
   return (
-    <Modal 
-        isOpen={isOpen} 
-        onClose={() => { setActiveView('none'); setJsonToLoad(''); onClose(); }} 
-        title="Developer Menu" 
+    <Modal
+        isOpen={isOpen}
+        onClose={() => { setActiveView('none'); setJsonToLoad(''); onClose(); }}
+        title="Developer Menu"
         size="xl"
     >
       <div className="flex flex-col space-y-3" style={{minHeight: '60vh'}}>
-        <div className="flex space-x-2 border-b pb-2 border-neutral-200 dark:border-neutral-700 flex-shrink-0">
+        <div className="flex space-x-2 border-b p-2 border-neutral-200 dark:border-neutral-700 flex-shrink-0">
           <Button onClick={() => setActiveView('history')} variant={activeView === 'history' ? 'primary' : 'outline'} size="sm">
             View History Data
           </Button>

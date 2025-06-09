@@ -73,11 +73,9 @@ export const EyeOpenIcon = (props: SpecificIconComponentProps) => <Icon path="M1
 export const EyeClosedIcon = (props: SpecificIconComponentProps) => <Icon path="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" {...props} />;
 export const MoveIcon = (props: SpecificIconComponentProps) => <Icon path="M5.2 9l-3 3 3 3M9 5.2l3-3 3 3M15 18.9l-3 3-3-3M18.9 9l3 3-3 3M3.3 12h17.4M12 3.2v17.6" {...props} />;
 export const SelectAllIcon = (props: SpecificIconComponentProps) => <Icon path="M21 3H3v18h18V3zM5 5h14v14H5V5z M7 7h4v4H7V7zm6 0h4v4h-4V7zm-6 6h4v4H7v-4zm6 0h4v4h-4v-4z" fillRule="evenodd" fill="currentColor" {...props} />;
-export const CheckSquareIcon = (props: SpecificIconComponentProps) => <Icon path="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" {...props} />;
+export const CheckSquareIcon = (props: SpecificIconComponentProps) => <Icon path="M9 11l3 3 10-10M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" {...props} />;
 
 export const XIcon = (props: SpecificIconComponentProps) => <Icon path="M6 18L18 6M6 6l12 12" {...props} />;
-
-// Custom Key Icons
 
 export const BrushIcon = (props: SpecificIconComponentProps) => <Icon path="M20 14.66V20a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h5.34M18 2l4 4L12 16H8v-4L18 2z" {...props} />;
 export const ColorEraserIcon = (props: SpecificIconComponentProps) => <Icon path="M18.576 2.424a1.5 1.5 0 00-2.121 0L3 15.879V21h5.121L21.576 7.545a1.5 1.5 0 000-2.121l-3-3zM6 18H5v-1h1v1zm2 0h-1v-1h1v1zm-2-2H5v-1h1v1zm2 0h-1v-1h1v1zm2 0h-1v-1h1v1zm-2-2H7v-1h1v1zm2 0h-1v-1h1v1zm2 0h-1v-1h1v1zm-2-2H9v-1h1v1zm2 0h-1v-1h1v1zm4.5-4.5L13 13 M3 22.5h18" fill="currentColor" {...props} />;
@@ -96,36 +94,6 @@ export const CopyIcon = (props: SpecificIconComponentProps) => <Icon path="M9 7h
 export const CutIcon = (props: SpecificIconComponentProps) => <Icon path="M6 3a3 3 0 100 6 3 3 0 000-6zM6 15a3 3 0 100 6 3 3 0 000-6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" {...props} />;
 export const PasteIcon = (props: SpecificIconComponentProps) => <Icon path="M16 4h2a2 2 0 011 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M9 2h6a1 1 0 011 1v2a1 1 0 01-1 1H9a1 1 0 01-1-1V3a1 1 0 011-1z" {...props} />;
 
-// Icon with rainbow gradient stroke
-// export const TextWithUnderlineIcon = (props: SpecificIconComponentProps) => (
-//   <svg
-//     xmlns="http://www.w3.org/2000/svg"
-//     className={props.className || 'w-5 h-5'}
-//     fill="none"
-//     viewBox="0 0 24 24"
-//     strokeWidth={props.strokeWidth || 2}
-//     style={props.size ? { width: props.size, height: props.size } : undefined}
-//   >
-//     <defs>
-//       <linearGradient id="rainbow-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-//         <stop offset="0%" stopColor="#ff0000" />
-//         <stop offset="16.66%" stopColor="#ff8800" />
-//         <stop offset="33.33%" stopColor="#ffff00" />
-//         <stop offset="50%" stopColor="#00ff00" />
-//         <stop offset="66.66%" stopColor="#0088ff" />
-//         <stop offset="83.33%" stopColor="#4400ff" />
-//         <stop offset="100%" stopColor="#8800ff" />
-//       </linearGradient>
-//     </defs>
-//     <path
-//       strokeLinecap="round"
-//       strokeLinejoin="round"
-//       stroke="url(#rainbow-gradient)"
-//       d="M12 3L6 16M12 3L18 16M8 12h8M4 21h16"
-//     />
-//   </svg>
-// );
-
 export const TextWithUnderlineIcon = (props: SpecificIconComponentProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M80 0v-160h800V0H80Zm140-280 210-560h100l210 560h-96l-50-144H368l-52 144h-96Zm176-224h168l-82-232h-4l-82 232Z"/></svg>
 );
@@ -133,10 +101,10 @@ export const BrushWithUnderlineIcon = (props: SpecificIconComponentProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="m247-904 57-56 343 343q23 23 23 57t-23 57L457-313q-23 23-57 23t-57-23L153-503q-23-23-23-57t23-57l190-191-96-96Zm153 153L209-560h382L400-751Zm360 471q-33 0-56.5-23.5T680-360q0-21 12.5-45t27.5-45q9-12 19-25t21-25q11 12 21 25t19 25q15 21 27.5 45t12.5 45q0 33-23.5 56.5T760-280ZM80 0v-160h800V0H80Z"/></svg>
 );
 export const EmptySquareWithBorderIcon = (props: SpecificIconComponentProps) => (
-  <Icon path="M3 3h18v18H3z" fill="none" strokeWidth={props.strokeWidth !== undefined ? props.strokeWidth : 2} {...props}/>
+  <Icon path="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" fill="none" {...props}/>
 );
 
-export const ToggleOnIcon = (props: SpecificIconComponentProps) => <CheckSquareIcon fill="currentColor" {...props} />;
+export const ToggleOnIcon = (props: SpecificIconComponentProps) => <CheckSquareIcon {...props} />;
 export const ToggleOffIcon = (props: SpecificIconComponentProps) => <EmptySquareWithBorderIcon strokeWidth={2} {...props} />;
 
 export const InformationCircleIcon = (props: SpecificIconComponentProps) => (

@@ -31,7 +31,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
   const [gridConfig, setGridConfig] = useState({
     cols: 20,
     rows: 20,
-    numColors: 8,
+    numColors: 6,
     poolingAlgorithm: 'mean' as 'mean' | 'mode'
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -144,7 +144,6 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
     }
   }, [isOpen, originalImage, displayScale, isDarkMode]);
 
-
   const handleSelectionMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === selectionBoxRef.current) {
       setIsDraggingSelection(true);
@@ -195,7 +194,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
         setSelection({ x: nX, y: nY, width: nW, height: nH });
       }
     }
-  }, [isDraggingSelection, isResizingSelection, originalImage, selection.width, selection.height]); // Removed isLoading state dependency
+  }, [isDraggingSelection, isResizingSelection, originalImage, selection.width, selection.height]);
 
   const handleDocumentMouseUp = useCallback(() => {
     setIsDraggingSelection(false);
@@ -485,7 +484,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
       <div className="flex flex-col md:flex-row gap-4">
         <div className="md:w-1/2 lg:w-1/3 flex flex-col gap-3 pr-2">
           <div>
-            <label htmlFor="image-loader-modal" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">1. Import Image</label>
+            <label htmlFor="image-loader-modal" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">1. Import Image</label>
             <input type="file" id="image-loader-modal" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-light file:text-primary-dark hover:file:bg-primary/80"/>
           </div>
           {originalImage && (
@@ -504,11 +503,11 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                     ))}
                 </div>
             </div>
-             <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded text-xs">
+            <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded text-xs">
                 Max original colors in selection: {maxOriginalColors !== null ? maxOriginalColors.toLocaleString() : "N/A"}
             </div>
             <div>
-                <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">2. Configure Pixelation:</h4>
+                <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">2. Configure Pixelation:</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                         <label htmlFor="grid-cols-modal">Grid Cols:</label>
@@ -528,7 +527,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                             className="w-full mt-1 p-1 border rounded dark:bg-neutral-700 dark:border-neutral-600"
                         />
                     </div>
-                    <div><label htmlFor="num-colors-modal">Shading Level (Target Colors):</label><input type="number" id="num-colors-modal" value={gridConfig.numColors} onChange={e => setGridConfig(p => ({...p, numColors: parseInt(e.target.value) || 1}))} min="1" max="256" className="w-full mt-1 p-1 border rounded dark:bg-neutral-700 dark:border-neutral-600"/></div>
+                    <div><label htmlFor="num-colors-modal">Target Colors:</label><input type="number" id="num-colors-modal" value={gridConfig.numColors} onChange={e => setGridConfig(p => ({...p, numColors: parseInt(e.target.value) || 1}))} min="1" max="256" className="w-full mt-1 p-1 border rounded dark:bg-neutral-700 dark:border-neutral-600"/></div>
                     <div><label htmlFor="pooling-algo-modal">Color Averaging:</label><select id="pooling-algo-modal" value={gridConfig.poolingAlgorithm} onChange={e => setGridConfig(p => ({...p, poolingAlgorithm: e.target.value as 'mean'|'mode'}))} className="w-full mt-1 p-1 border rounded dark:bg-neutral-700 dark:border-neutral-600"><option value="mean">Mean</option><option value="mode">Mode (Dominant)</option></select></div>
                 </div>
             </div>

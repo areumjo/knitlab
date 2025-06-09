@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { KeyDefinition, StitchSymbolDef, ContextMenuItem } from '../types';
 import { Button } from './Button';
-import { PlusIcon, PenIcon as EditIcon, TrashIcon, CopyIcon as DuplicateIcon } from './Icon';
+import { PlusIcon } from './Icon';
 import { StitchSymbolDisplay } from './StitchSymbolDisplay';
 import {
     KEY_ID_EMPTY,
@@ -156,7 +156,6 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
   );
 };
 
-
 export const TopRibbon: React.FC<KeyPaletteProps> = ({
   keyPalette,
   activeKeyId,
@@ -205,7 +204,7 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
   });
 
   return (
-    <div className="bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 p-1.5 flex items-end space-x-1.5 print:hidden overflow-x-auto overflow-y-hidden custom-scrollbar h-[52px] flex-shrink-0">
+    <div className="bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 p-1.5 flex items-end space-x-1.5 print:hidden overflow-x-auto overflow-y-hidden custom-scrollbar flex-shrink-0">
 
       {paletteWithShortcutsAndTally.map((keyDefWithDetails) => (
         <div
@@ -213,16 +212,6 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
           className="flex flex-col items-center flex-shrink-0"
           title={showKeyUsageTally && keyDefWithDetails.tallyCount ? `${keyDefWithDetails.name} - Used: ${keyDefWithDetails.tallyCount}` : keyDefWithDetails.name}
         >
-          {showKeyUsageTally && keyDefWithDetails.tallyCount && keyDefWithDetails.tallyCount > 0 ? (
-            <span
-              className="text-[10px] font-medium text-neutral-600 dark:text-neutral-400 mb-0.5 text-center leading-none"
-              aria-hidden="true"
-            >
-              {keyDefWithDetails.tallyCount > 999 ? '999+' : keyDefWithDetails.tallyCount}
-            </span>
-          ) : (
-            <span className="text-[10px] invisible mb-0.5 leading-none" aria-hidden="true">-</span> // Placeholder for alignment
-          )}
           <KeyPreviewButton
             keyDef={keyDefWithDetails}
             isActive={activeKeyId === keyDefWithDetails.id}
@@ -232,14 +221,24 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
             shortcutNumber={keyDefWithDetails.shortcutNumber}
             isDarkMode={isDarkMode}
           />
+          {showKeyUsageTally && keyDefWithDetails.tallyCount && keyDefWithDetails.tallyCount > 0 ? (
+            <span
+              className="text-[10px] mt-1 font-medium text-neutral-600 dark:text-neutral-400 text-center leading-none"
+              aria-hidden="true"
+            >
+              {keyDefWithDetails.tallyCount > 999 ? '999+' : keyDefWithDetails.tallyCount}
+            </span>
+          ) : (
+            <span className="text-[10px] mt-1 invisible leading-none" aria-hidden="true">-</span> // Placeholder for alignment
+          )}
         </div>
       ))}
-
-      <div className="h-7 border-l border-neutral-300 dark:border-neutral-600 ml-2 mr-1 flex-shrink-0 self-center"></div>
-
-      <div className="flex flex-col items-center flex-shrink-0 self-center">
+      <div className="flex flex-col items-center flex-shrink-0">
+        <div className="h-8 border-l border-neutral-300 dark:border-neutral-600 ml-2 mr-1 flex-shrink-0 self-center"></div>
+        <span className="text-[10px] mt-1 invisible mb-0.5 leading-none" aria-hidden="true">-</span>
+      </div>
+      <div className="flex flex-col items-center flex-shrink-0">
         {/* Placeholder for Add button tally if needed, or just to align with keys */}
-        <span className="text-[10px] invisible mb-0.5 leading-none" aria-hidden="true">-</span>
         <Button
             variant="ghost"
             size="sm"
@@ -249,6 +248,7 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
         >
             <PlusIcon />
         </Button>
+        <span className="text-[10px] invisible mb-1 leading-none" aria-hidden="true">-</span>
       </div>
 
       {contextMenu?.visible && (
