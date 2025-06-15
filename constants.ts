@@ -13,46 +13,34 @@ export const THEME_DEFAULT_BACKGROUND_SENTINEL = 'theme_default_background';
 // New sentinel for symbol color matching theme's default stitch color
 export const THEME_DEFAULT_SYMBOL_COLOR_SENTINEL = 'theme_default_symbol_color';
 
-
 export const DEFAULT_STITCH_SYMBOLS: StitchSymbolDef[] = [
-  { id: 'empty', name: 'Empty', abbreviation: '', svgContent: '<rect width="100%" height="100%" fill="transparent"/>', description: 'Empty stitch, no action.' },
-  { id: 'knit', name: 'Knit Stitch', abbreviation: 'K', svgContent: '<line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="2.5"/>', description: 'Face knit stitch (vertical line).' },
-  { id: 'purl', name: 'Purl Stitch', abbreviation: 'P', svgContent: '<line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.5"/>', description: 'Face purl stitch (horizontal line).' },
-  { id: 'tuck', name: 'Tuck Stitch', abbreviation: 'N', svgContent: '<path d="M7 18 V9 C7 6 9 6 12 6 S17 6 17 9 V18" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Tuck stitch (n shape).' },
-  { id: 'miss', name: 'Miss/Skip Stitch', abbreviation: 'O', svgContent: '<circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Miss/skip stitch (o shape).' },
-  { id: 'full_needle', name: 'Full Needle Rib', abbreviation: '+', svgContent: '<path d="M12 4 V20 M4 12 H20" stroke="currentColor" stroke-width="2.5"/>', description: 'Full needle rib (+ shape).' },
-  { id: 'filling_in', name: 'Filling In Stitch', abbreviation: 'V︎●●', svgContent: '<path d="M8 15 L12 19 L16 15" stroke="currentColor" stroke-width="2.5" fill="none"/> <circle cx="10" cy="12" r="1.5" fill="currentColor"/> <circle cx="14" cy="12" r="1.5" fill="currentColor"/>', description: 'Filling in stitch (V with 2 dots on top).' },
-  { id: 'tubular_vertical', name: 'Tubular Vertical', abbreviation: 'TuV', svgContent: '<circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2.5" fill="none"/> <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5"/>', description: 'Tubular stitch (O with vertical line).' },
-  { id: 'tubular_horizontal', name: 'Tubular Horizontal', abbreviation: 'TuH', svgContent: '<circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2.5" fill="none"/> <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5"/>', description: 'Tubular stitch (O with horizontal line).' },
-  { id: 'slip', name: 'Slip Stitch', abbreviation: 'V', svgContent: '<path d="M8 10 L12 14 L16 10" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Slip stitch (V shape).' },
-  { id: 'float', name: 'Float Stitch', abbreviation: 'V-', svgContent: '<path d="M8 10 L12 14 L16 10 M7 12 H17" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Float stitch (V with horizontal line).' },
-  { id: 'rack_left', name: 'Face Left Racking', abbreviation: 'RL\\', svgContent: '<line x1="17" y1="5" x2="7" y2="19" stroke="currentColor" stroke-width="2.5"/>', description: 'Face left racking (\\ shape).' },
-  { id: 'rack_right', name: 'Face Right Racking', abbreviation: 'RR/', svgContent: '<line x1="7" y1="5" x2="17" y2="19" stroke="currentColor" stroke-width="2.5"/>', description: 'Face right racking (/ shape).' },
-  { id: 'cross_right_over', name: 'Right Over Cross', abbreviation: 'XRO', svgContent: '<path d="M7 19 L17 5 M7 5 L10 8 M14 16 L17 19" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Right over cross (\\ with broken / over it).' },
-  { id: 'cross_left_over', name: 'Left Over Cross', abbreviation: 'XLO', svgContent: '<path d="M7 5 L17 19 M7 16 L10 19 M14 8 L17 5" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Left over cross (/ with broken \\ over it).' },
-  { id: 'widen_face_right', name: 'Face Right Widening', abbreviation: 'WFR', svgContent: '<path d="M12 4 V20 M12 10 L18 10" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Face right widening (vertical line with branch right).' },
-  { id: 'widen_face_left', name: 'Face Left Widening', abbreviation: 'WFL', svgContent: '<path d="M12 4 V20 M12 10 L6 10" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Face left widening (vertical line with branch left).' },
-  { id: 'narrow_face_right', name: 'Face Right Narrowing', abbreviation: 'NFR', svgContent: '<path d="M12 4 L12 14 L18 20" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Face right narrowing (vertical line with branch downwards right).' },
-  { id: 'narrow_face_left', name: 'Face Left Narrowing', abbreviation: 'NFL', svgContent: '<path d="M12 4 L12 14 L6 20" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Face left narrowing (vertical line with branch downwards left).' },
-  { id: 'narrow_back_right', name: 'Back Right Narrowing', abbreviation: 'NBR', svgContent: '<path d="M17 5 L7 19 M7 12 H13" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Back right narrowing (\\ with horizontal branch left).' },
-  { id: 'narrow_back_left', name: 'Back Left Narrowing', abbreviation: 'NBL', svgContent: '<path d="M7 5 L17 19 M11 12 H17" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Back left narrowing (/ with horizontal branch right).' },
-  { id: 'face_3_in_1', name: 'Face Three Stitches in One', abbreviation: 'F3in1', svgContent: '<path d="M12 5 V13 M7 19 L12 13 L17 19" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Face three stitches in one (3 lines converging up from bottom, central line continues up).' },
-  { id: 'back_3_in_1', name: 'Back Three Stitches in One', abbreviation: 'B3in1', svgContent: '<path d="M6 7 L12 13 M12 7 L12 13 M18 7 L12 13" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Back three stitches in one (3 lines converging down from top).' },
-  { id: 'transfer_to_right', name: 'Transfer Stitch to Right', abbreviation: 'TR->', svgContent: '<path d="M8 18 L16 6 M10 12 H18" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Transfer stitch to right needle (/ with perpendicular line right).' },
-  { id: 'transfer_to_left', name: 'Transfer Stitch to Left', abbreviation: 'TR<-', svgContent: '<path d="M16 18 L8 6 M6 12 H14" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Transfer stitch to left needle (\\ with perpendicular line left).' },
-  { id: 'widen_back_right', name: 'Back Right Widening', abbreviation: 'WBR', svgContent: '<path d="M6 12 H18 M12 12 L18 6" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Back right widening (horizontal with / branch up-right).' },
-  { id: 'widen_back_left', name: 'Back Left Widening', abbreviation: 'WBL', svgContent: '<path d="M6 12 H18 M12 12 L6 6" stroke="currentColor" stroke-width="2.5" fill="none"/>', description: 'Back left widening (horizontal with \\ branch up-left).' },
+  { id: 'empty', name: 'empty', abbreviation: '', svgContent: '<rect width="100%" height="100%" fill="transparent" />', description: 'Empty stitch' },
+  { id: 'knit', name: 'knit', abbreviation: 'K', svgContent: '<line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="2.5"/ >', description: 'Knit stitch (vertical line)' },
+  { id: 'purl', name: 'purl', abbreviation: 'P', svgContent: '<line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.5"/ >', description: 'Purl stitch (horizontal line)' },
+  { id: 'sl', name: 'slip', abbreviation: 'sl', svgContent: '<svg viewBox="-140 -140 828 828"><path d="M35.547 20 279.08 532M279.08 532L516.452 20" stroke="currentColor" stroke-width="75" stroke-linecap="round" /></svg>', description: 'Slip stitch purlwise' },
+  { id: 'sl-wyif', name: 'slip 1 wyif', abbreviation: 'sl wyif', svgContent: '<svg viewBox="-140 -140 828 828"><path d="M35.547 20 279.08 532M279.08 532L516.452 20" stroke="currentColor" stroke-width="75" stroke-linecap="round" /><circle cx="280.02" cy="114.252" r="62.563" stroke-width="25" stroke-linecap="round" fill="currentColor"/></svg>', description: 'Slip 1 stitch purlwise with yarn in front' },
+  { id: 'k-tbl', name: 'K tbl', abbreviation: 'k tbl', svgContent: '<svg viewBox="-125 -125 745 745" fill="rgb(255, 255, 255)"><path d="M468.825 477.648C372.159 476.314 83.492 274.314 83.492 124.98s280-145.332 280 50.668S28.825 468.314 28.825 468.314" stroke="currentColor" stroke-linecap="round" stroke-width="75" /></svg>', description: 'Knit through back loop' },
+  { id: 'p-tbl', name: 'P tbl', abbreviation: 'p tbl', svgContent: '<svg viewBox="-125 -125 745 745" fill="rgb(255, 255, 255)"><path d="M468.825 477.648C372.159 476.314 83.492 274.314 83.492 124.98s280-145.332 280 50.668S28.825 468.314 28.825 468.314" stroke="currentColor" stroke-linecap="round" stroke-width="75" fill="none"/><circle cx="230" cy="160" r="50" stroke-width="25" stroke-linecap="round" fill="currentColor"/></svg>', description: 'Purl through back loop' },
+  { id: 'm1r', name: 'm1r', abbreviation: 'm1r', svgContent: '<svg viewBox="-140 -140 828 828" background: rgb(255, 255, 255)><path stroke="currentColor" stroke-linecap="round" stroke-width="75" d="m20 20 256 256L532 20 20 532" fill="none" /></svg>', description: 'Make 1 right leaning' },
+  { id: 'm1l', name: 'm1l', abbreviation: 'm1l', svgContent: '<svg viewBox="-140 -140 828 828" background: rgb(255, 255, 255)><path stroke="currentColor" stroke-linecap="round" stroke-width="75" d="M532 20 276 276 20 20l512 512" fill="none" /></svg>', description: 'Make 1 left leaning' },
+  { id: 'm1pr', name: 'm1pr', abbreviation: 'm1pr', svgContent: '<svg viewBox="-140 -140 828 828" background: rgb(255, 255, 255)><path stroke="currentColor" stroke-linecap="round" stroke-width="75" d="m20 20 256 256L532 20 20 532" fill="none" /><circle cx="276" cy="84" r="64" stroke="#000000" stroke-miterlimit="10" stroke-width="1" /></svg>', description: 'Make 1 purlwise right leaning.' },
+  { id: 'm1pl', name: 'm1pl', abbreviation: 'm1pl', svgContent: '<svg viewBox="-140 -140 828 828" background: rgb(255, 255, 255)><path stroke="currentColor" stroke-linecap="round" stroke-width="75" d="M532 20 276 276 20 20l512 512" fill="none" /><circle cx="276" cy="96.598" r="64" stroke="#000000" stroke-width="1" /></svg>', description: 'Make 1 purlwise left leaning.' },
+  { id: 'yo', name: 'yarn over', abbreviation: 'yo', svgContent: '<svg viewBox="-140 -140 828 828"><circle cx="276" cy="276" r="256" stroke="currentColor" stroke-width="75" fill="none" /></svg>', description: 'Yarn over' },
+  { id: 'k2tog', name: 'k2tog', abbreviation: 'k2tog', svgContent: '<svg viewBox="-140 -140 828 828"><path d="M532 20 20 532" stroke="currentColor" stroke-width="75" stroke-linecap="round" fill="none" /></svg>', description: 'Knit 2 stitches together' },
+  { id: 'ssk', name: 'slip, slip, knit', abbreviation: 'ssk', svgContent: '<svg viewBox="-140 -140 828 828"><path d="M20 20 512 512" stroke="currentColor" stroke-width="75" stroke-linecap="round" fill="none" /></svg>', description: 'Slip, slip, knit' },
+  { id: 'sk2p', name: 'SK2P', abbreviation: 'sk2p', svgContent: '<svg viewBox="-130.25 -140 781.5 828"><path d="M263.533 20 20 532m480.905 0L263.533 20" stroke="currentColor" stroke-width="75" stroke-linecap="round" fill="none" /></svg>', description: 'Slip, knit 2 together, pass slipped stitch over' },
+  { id: 'p2tog', name: 'Purl 2 Together', abbreviation: 'p2tog', svgContent: '<svg viewBox="-140 -140 828 828"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="75" d="M532 20 20 532" /><circle cx="148" cy="148" r="64" /></svg>', description: 'Purl 2 stitches together' },
+  { id: 'turn-rs', name: 'Turn to RS', abbreviation: 'turn-RS', svgContent: '<svg viewBox="0 0 512 512"><path d="M110.024 392.688h138.871M110.024 175.513h138.871m-140.871 0 94.058 94.058m0-188.116-94.058 94.058" stroke="currentColor" stroke-linecap="round" stroke-width="45" /><path d="M248.895 392.688c84.488 0 153.081-48.656 153.081-108.588S333.383 175.513 248.895 175.513" fill="none" stroke="currentColor" stroke-width="45" /></svg>', description: 'Turn to Right Side' },
+  { id: 'turn-ws', name: 'Turn to WS', abbreviation: 'turn-WS', svgContent: '<svg viewBox="0 0 512 512"><path d="M401.976 392.688H263.105M401.976 175.513H263.105m138.871 0-94.058 94.058m0-188.116 94.058 94.058" stroke="currentColor" stroke-linecap="round" stroke-width="45" /><path d="M263.105 392.688c-84.488 0-153.081-48.656-153.081-108.588S178.617 175.513 263.105 175.513" fill="none" stroke="currentColor" stroke-width="45" /></svg>', description: 'Turn to Wrong Side' }
 ];
 
 export const UNICODE_SYMBOLS_FOR_KEY_EDITOR: { value: string, name: string }[] = [
-  { value: '•', name: 'Bullet' }, { value: '■', name: 'Square' }, { value: '●', name: 'Circle' },
-  { value: 'K', name: 'Knit (Text)' }, { value: 'P', name: 'Purl (Text)' },
-  { value: 'A', name: 'Letter A' }, { value: 'B', name: 'Letter B' }, { value: 'C', name: 'Letter C' },
-  { value: 'X', name: 'Letter X' }, { value: 'O', name: 'Letter O' },
-  // { value: '/', name: 'Forward Slash' }, { value: '\\', name: 'Backslash' },
-  { value: '+', name: 'Plus Sign' }, { value: '-', name: 'Minus Sign' },
-  { value: '★', name: 'Star' }, { value: '♥', name: 'Heart' }, { value: '♦', name: 'Diamond' },
-  { value: '😊', name: 'Smiling Face Emoji' }, { value: '👍', name: 'Thumbs Up Emoji' }, { value: '✨', name: 'Sparkles Emoji' }
+  { value: '•', name: 'bullet' }, { value: '■', name: 'square' }, { value: '●', name: 'circle' },
+  { value: 'K', name: 'letter K' }, { value: 'P', name: 'letter P' },
+  { value: 'A', name: 'letter A' }, { value: 'B', name: 'letter B' }, { value: 'C', name: 'letter C' },
+  { value: 'X', name: 'letter X' }, { value: 'O', name: 'letter O' },
+  { value: '+', name: 'plus Sign' }, { value: '-', name: 'minus Sign' },
+  { value: '✅', name: 'thumbs Up Emoji' }, { value: '✨', name: 'sparkles Emoji' }
 ];
 
 export const CIRCLED_DIGITS = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'];
@@ -73,7 +61,6 @@ export const KEY_ID_PURL_DEFAULT = 'key_purl_default';
 export const MAX_KEY_WIDTH = 8;
 export const MAX_KEY_HEIGHT = 8;
 export const ABBREVIATION_SKIP_SENTINEL = "__ABBR_SKIP__";
-
 
 export const generateNewKeyId = () => `key_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 export const generateNewSheetId = () => `sheet_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;

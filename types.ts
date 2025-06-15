@@ -16,6 +16,7 @@ export interface StitchSymbolDef {
   svgContent?: string;
   description?: string;
   category?: string;
+  viewBox?: string;
 }
 
 export interface KeyCellContent {

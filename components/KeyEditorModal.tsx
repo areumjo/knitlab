@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { KeyDefinition, StitchSymbolDef, Line, Point, KeyCellContent } from '../types';
 import { Modal } from './Modal';
@@ -496,7 +495,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
     const nameMatch = symbol.name.toLowerCase().includes(term);
     const valueMatch = symbol.value.toLowerCase().includes(term);
     return nameMatch || valueMatch;
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  });
 
   if (symbolSearchTerm.trim()) {
     const customCharValue = symbolSearchTerm.trim().charAt(0);
@@ -701,6 +700,8 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
             </Popover>
         </div>
 
+        {/* Draw Line Mode */}
+        {/* [TODO] add margin/padding in the individual cell and add guide lines after adding cells */}
         <div className="flex-grow flex items-center justify-center p-2 overflow-auto custom-scrollbar min-h-[200px]">
            {activeEditorMode === null ? (
                 <div className="text-center text-neutral-500 dark:text-neutral-400 p-8 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg">

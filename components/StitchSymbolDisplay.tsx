@@ -1,8 +1,44 @@
-
-
 import React from 'react';
 import { StitchSymbolDisplayProps } from '../types';
 import { DEFAULT_STITCH_SYMBOLS, THEME_DEFAULT_SYMBOL_COLOR_SENTINEL, DEFAULT_STITCH_COLOR_DARK, DEFAULT_STITCH_COLOR_LIGHT } from '../constants';
+
+const getSymbolSVG = (
+  symbolDef: typeof DEFAULT_STITCH_SYMBOLS[number],
+  cellSize: number,
+  color: string
+): React.ReactElement | null => {
+  if (!symbolDef?.svgContent) return null;
+
+  const svgDisplaySizeRatio = 0.85;
+  const widthPx = `${cellSize * svgDisplaySizeRatio}px`;
+  const heightPx = `${cellSize * svgDisplaySizeRatio}px`;
+
+  // Case 1: Already a full SVG
+  if (symbolDef.svgContent.includes('<svg')) {
+    return (
+      <div
+        style={{ width: widthPx, height: heightPx }}
+        dangerouslySetInnerHTML={{ __html: symbolDef.svgContent }}
+      />
+    );
+  }
+
+  // Case 2: Raw content like <path> or <g>
+  const viewBox =
+    symbolDef.viewBox ||
+    symbolDef.svgContent.match(/viewBox\s*=\s*["']([^"']+)["']/)?.[1] ||
+    '0 0 24 24';
+
+  return (
+    <svg
+      width={widthPx}
+      height={heightPx}
+      viewBox={viewBox}
+      style={{ color }}
+      dangerouslySetInnerHTML={{ __html: symbolDef.svgContent }}
+    />
+  );
+};
 
 export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
   keyDef,
@@ -11,11 +47,10 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
   cellSize = 24,
   keyPartRowOffset,
   keyPartColOffset,
-  isDarkMode = false, // Default to false, parent should provide actual
+  isDarkMode = false,
 }) => {
-
   if (!keyDef) {
-    return <div className={`w-full h-full ${className}`} style={{backgroundColor: 'transparent'}}></div>;
+    return <div className={`w-full h-full ${className}`} style={{ backgroundColor: 'transparent' }} />;
   }
 
   const { width: keyWidth, height: keyHeight, symbolColor: rawSymbolColor, lines, cells } = keyDef;
@@ -34,9 +69,10 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
     overflow: 'hidden',
     userSelect: 'none',
     position: 'relative',
-    color: effectiveSymbolColor, // Use resolved color
+    color: effectiveSymbolColor,
   };
 
+  // 🔷 Render key part if we're rendering a single part of a larger key
   if (keyPartRowOffset !== undefined && keyPartColOffset !== undefined && (keyWidth > 1 || keyHeight > 1)) {
     const rOff = keyPartRowOffset;
     const cOff = keyPartColOffset;
@@ -58,7 +94,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
                 y1={line.start.y * cellSize}
                 x2={line.end.x * cellSize}
                 y2={line.end.y * cellSize}
-                stroke={effectiveSymbolColor} // Use resolved color
+                stroke={effectiveSymbolColor}
                 strokeWidth={Math.max(1, cellSize * 0.08)}
                 strokeLinecap="round"
               />
@@ -68,38 +104,28 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
       );
     } else if (cells && cells[rOff] && cells[rOff][cOff]) {
       const cellData = cells[rOff][cOff];
-      if (cellData) {
-        if (cellData.type === 'svg') {
-          const symbolDef = allStitchSymbols.find(s => s.id === cellData.value);
-          if (symbolDef?.svgContent) {
-            const svgDisplaySizeRatio = 0.85;
-            return (
-              <div style={displayStyle} className={className} title={keyDef.name}>
-                <svg
-                    width={`${cellSize * svgDisplaySizeRatio}px`}
-                    height={`${cellSize * svgDisplaySizeRatio}px`}
-                    viewBox="0 0 24 24"
-                    dangerouslySetInnerHTML={{ __html: symbolDef.svgContent }}
-                    style={{ color: effectiveSymbolColor }} // Use resolved color
-                />
-              </div>
-            );
-          }
-        } else if (cellData.type === 'text') {
-          const fontSize = Math.max(8, cellSize * 0.6);
-          return (
-            <div style={displayStyle} className={className} title={keyDef.name}>
-              <span style={{ fontSize: `${fontSize}px`, lineHeight: '1', fontFamily: 'monospace', color: effectiveSymbolColor }}>
-                {cellData.value.charAt(0)}
-              </span>
-            </div>
-          );
-        }
+      if (cellData?.type === 'svg') {
+        const symbolDef = allStitchSymbols.find((s) => s.id === cellData.value);
+        return (
+          <div style={displayStyle} className={className} title={keyDef.name}>
+            {symbolDef ? getSymbolSVG(symbolDef, cellSize, effectiveSymbolColor) : null}
+          </div>
+        );
+      } else if (cellData?.type === 'text') {
+        const fontSize = Math.max(8, cellSize * 0.6);
+        return (
+          <div style={displayStyle} className={className} title={keyDef.name}>
+            <span style={{ fontSize, lineHeight: '1', fontFamily: 'monospace', color: effectiveSymbolColor }}>
+              {cellData.value.charAt(0)}
+            </span>
+          </div>
+        );
       }
     }
-    return <div className={`w-full h-full ${className}`} title={keyDef.name} style={{backgroundColor: 'transparent'}}></div>;
+    return <div className={`w-full h-full ${className}`} title={keyDef.name} style={{ backgroundColor: 'transparent' }} />;
   }
 
+  // 🔷 Single cell (1x1) key
   else if (keyWidth === 1 && keyHeight === 1) {
     if (lines && lines.length > 0) {
       return (
@@ -128,21 +154,12 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
     } else if (cells && cells[0] && cells[0][0]) {
       const cellData = cells[0][0];
       if (cellData.type === 'svg') {
-        const symbolDef = allStitchSymbols.find(s => s.id === cellData.value);
-        if (symbolDef?.svgContent) {
-          const svgDisplaySizeRatio = 0.85;
-          return (
-            <div style={displayStyle} className={className} title={keyDef.name}>
-              <svg
-                  width={`${cellSize * svgDisplaySizeRatio}px`}
-                  height={`${cellSize * svgDisplaySizeRatio}px`}
-                  viewBox="0 0 24 24"
-                  dangerouslySetInnerHTML={{ __html: symbolDef.svgContent }}
-                  style={{ color: effectiveSymbolColor }}
-              />
-            </div>
-          );
-        }
+        const symbolDef = allStitchSymbols.find((s) => s.id === cellData.value);
+        return (
+          <div style={displayStyle} className={className} title={keyDef.name}>
+            {symbolDef ? getSymbolSVG(symbolDef, cellSize, effectiveSymbolColor) : null}
+          </div>
+        );
       } else if (cellData.type === 'text') {
         const fontSize = Math.max(8, cellSize * 0.6);
         return (
@@ -156,6 +173,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
     }
   }
 
+  // 🔷 Multi-cell preview (MxN)
   else if (keyWidth > 1 || keyHeight > 1) {
     const unitSize = cellSize / Math.max(keyWidth, keyHeight);
 
@@ -221,5 +239,5 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
     }
   }
 
-  return <div className={`w-full h-full ${className}`} title={keyDef.name} style={{backgroundColor: 'transparent'}}></div>;
+  return <div className={`w-full h-full ${className}`} title={keyDef.name} style={{ backgroundColor: 'transparent' }} />;
 };
