@@ -4,8 +4,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { ColorPicker } from './ColorPicker';
 import { StitchSymbolDisplay } from './StitchSymbolDisplay';
-import { BrushIcon, TextWithUnderlineIcon, BrushWithUnderlineIcon, SearchIcon,
-    XIcon as CloseIcon, ToggleOnIcon, ToggleOffIcon } from './Icon';
+import { BrushIcon, TextWithUnderlineIcon, BrushWithUnderlineIcon, SearchIcon, XIcon as CloseIcon, ToggleOnIcon, ToggleOffIcon } from './Icon';
 import {
   DEFAULT_STITCH_COLOR_LIGHT,
   DEFAULT_STITCH_COLOR_DARK,
@@ -456,7 +455,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
       }
     }
 
-    let buttonClasses = "text-xs font-medium ";
+    let buttonClasses = "text-xs font-medium";
     if (isInc) {
       buttonClasses += isDisabled
         ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500"
@@ -469,17 +468,17 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
 
     return (
         <button
-            type="button"
-            style={controlStyle}
+          type="button"
+          style={controlStyle}
             className={buttonClasses}
-            onClick={() => {
+          onClick={() => {
             if (dimension === 'width') setEditedWidth(w => isInc ? Math.min(MAX_KEY_WIDTH, w + 1) : Math.max(1, w - 1));
             else setEditedHeight(h => isInc ? Math.min(MAX_KEY_HEIGHT, h + 1) : Math.max(1, h - 1));
-            }}
-            disabled={isDisabled}
-            aria-label={`${isInc ? 'Increase' : 'Decrease'} ${dimension}`}
+          }}
+          disabled={isDisabled}
+          aria-label={`${isInc ? 'Increase' : 'Decrease'} ${dimension}`}
         >
-            {textContent}
+          {textContent}
         </button>
     );
   };
@@ -701,7 +700,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
         </div>
 
         {/* Draw Line Mode */}
-        {/* [TODO] add margin/padding in the individual cell and add guide lines after adding cells */}
+        {/* [TODO] add margin/padding in the individual cell and add guide lines after adding cells if possible */}
         <div className="flex-grow flex items-center justify-center p-2 overflow-auto custom-scrollbar min-h-[200px]">
            {activeEditorMode === null ? (
                 <div className="text-center text-neutral-500 dark:text-neutral-400 p-8 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg">
@@ -709,6 +708,10 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
                     <p className="text-sm">Select Line Mode or Symbol Mode above to begin editing the key.</p>
                 </div>
             ) : (
+              <div className='flex flex-col items-center justify-center h-full text-xs font-bold text-neutral-800 dark:text-neutral-100'>
+                <div>
+                  {editedWidth} x {editedHeight}
+                </div>
                 <div className="relative" style={{
                     paddingTop: GUTTER_CONTROLS_AREA_SIZE, paddingBottom: GUTTER_CONTROLS_AREA_SIZE,
                     paddingLeft: GUTTER_CONTROLS_AREA_SIZE, paddingRight: GUTTER_CONTROLS_AREA_SIZE
@@ -801,6 +804,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
                         </svg>
                     </div>
                 </div>
+              </div>
             )}
         </div>
 

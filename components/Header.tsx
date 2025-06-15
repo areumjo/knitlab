@@ -62,7 +62,6 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center sm:space-x-1 md:space-x-1.5">
-        {/* Save/Load buttons removed */}
         <Button variant="ghost" size="sm" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)"><UndoIcon /></Button>
         <Button variant="ghost" size="sm" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Y)"><RedoIcon /></Button>
         <div className="h-6 border-l border-neutral-300 dark:border-neutral-600 mx-0.5 sm:mx-1"></div>

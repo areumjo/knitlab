@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { ApplicationState, HistoryEntry } from '../types';
 import { MAX_HISTORY_LENGTH } from '../constants';
@@ -37,7 +36,7 @@ export const useChartHistory = (initialState: ApplicationState) => {
 
       return updatedHistory;
     });
-  }, [currentIndex, initialState]); // `initialState` is stable. `currentIndex` is the dependency.
+  }, [currentIndex, initialState]);
 
   const undo = useCallback(() => {
     if (currentIndex > 0) {
@@ -46,38 +45,36 @@ export const useChartHistory = (initialState: ApplicationState) => {
   }, [currentIndex]);
 
   const redo = useCallback(() => {
-    // Check against the current history state length directly in the updater
-    // to ensure it's based on the most up-to-date history.
-    setHistory(currentHistory => {
-        if (currentIndex < currentHistory.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-        }
-        return currentHistory;
-    });
-  }, [currentIndex]);
+    if (currentIndex < history.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    }
+  }, [currentIndex, history.length]);
 
   const currentState = history[currentIndex]?.state;
   const canUndo = currentIndex > 0;
   const canRedo = currentIndex < history.length - 1;
 
-  const resetHistory = useCallback((newState: ApplicationState) => { // Changed to ApplicationState
+  const resetHistory = useCallback((newState: ApplicationState) => {
     setHistory([{ state: newState, timestamp: Date.now() }]);
     setCurrentIndex(0);
   }, []);
 
-  // updateCurrentState is used to modify the current history entry without adding a new one.
   // This is typically for non-undoable changes or transient state updates.
-  const updateCurrentState = useCallback((updater: (prevState: ApplicationState) => ApplicationState) => { // Changed to ApplicationState
+  const updateCurrentState = useCallback((updater: (prevState: ApplicationState) => ApplicationState) => {
     setHistory(prevHistory => {
-        const newHistory = [...prevHistory];
-        if (newHistory[currentIndex]) { // Ensure the current index is valid
-            const updatedState = updater(newHistory[currentIndex].state);
-            newHistory[currentIndex] = {state: updatedState, timestamp: Date.now()}; // Update timestamp
-        }
-        return newHistory;
+      // Safeguard: Ensure currentIndex is valid
+      if (currentIndex < 0 || currentIndex >= prevHistory.length) {
+        console.error(`Invalid currentIndex: ${currentIndex}. Cannot update state.`);
+        return prevHistory; // Return the unchanged history
+      }
+
+      const newHistory = [...prevHistory];
+      const updatedState = updater(newHistory[currentIndex].state);
+      newHistory[currentIndex] = { state: updatedState, timestamp: Date.now() }; // Update timestamp
+
+      return newHistory;
     });
   }, [currentIndex]);
-
 
   return { currentState, recordChange, undo, redo, canUndo, canRedo, resetHistory, updateCurrentState, history };
 };
