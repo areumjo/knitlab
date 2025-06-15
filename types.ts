@@ -144,7 +144,7 @@ export interface StitchSymbolDisplayProps {
   cellSize?: number;
   keyPartRowOffset?: number;
   keyPartColOffset?: number;
-  isDarkMode?: boolean; // Added for resolving theme-dependent symbol colors
+  isDarkMode?: boolean;
 }
 
 // Data structure for the output of ImageProcessorModal

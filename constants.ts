@@ -49,7 +49,7 @@ export const UNICODE_SYMBOLS_FOR_KEY_EDITOR: { value: string, name: string }[] =
   { value: 'K', name: 'Knit (Text)' }, { value: 'P', name: 'Purl (Text)' },
   { value: 'A', name: 'Letter A' }, { value: 'B', name: 'Letter B' }, { value: 'C', name: 'Letter C' },
   { value: 'X', name: 'Letter X' }, { value: 'O', name: 'Letter O' },
-  { value: '/', name: 'Forward Slash' }, { value: '\\', name: 'Backslash' },
+  // { value: '/', name: 'Forward Slash' }, { value: '\\', name: 'Backslash' },
   { value: '+', name: 'Plus Sign' }, { value: '-', name: 'Minus Sign' },
   { value: '★', name: 'Star' }, { value: '♥', name: 'Heart' }, { value: '♦', name: 'Diamond' },
   { value: '😊', name: 'Smiling Face Emoji' }, { value: '👍', name: 'Thumbs Up Emoji' }, { value: '✨', name: 'Sparkles Emoji' }

@@ -89,7 +89,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
           const fontSize = Math.max(8, cellSize * 0.6);
           return (
             <div style={displayStyle} className={className} title={keyDef.name}>
-              <span style={{ fontSize: `${fontSize}px`, lineHeight: '1', fontFamily: 'monospace', color: effectiveSymbolColor }}> {/* Use resolved color */}
+              <span style={{ fontSize: `${fontSize}px`, lineHeight: '1', fontFamily: 'monospace', color: effectiveSymbolColor }}>
                 {cellData.value.charAt(0)}
               </span>
             </div>
@@ -117,7 +117,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
                 y1={line.start.y * cellSize}
                 x2={line.end.x * cellSize}
                 y2={line.end.y * cellSize}
-                stroke={effectiveSymbolColor} // Use resolved color
+                stroke={effectiveSymbolColor}
                 strokeWidth={Math.max(1, cellSize * 0.08)}
                 strokeLinecap="round"
               />
@@ -138,7 +138,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
                   height={`${cellSize * svgDisplaySizeRatio}px`}
                   viewBox="0 0 24 24"
                   dangerouslySetInnerHTML={{ __html: symbolDef.svgContent }}
-                  style={{ color: effectiveSymbolColor }} // Use resolved color
+                  style={{ color: effectiveSymbolColor }}
               />
             </div>
           );
@@ -147,7 +147,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
         const fontSize = Math.max(8, cellSize * 0.6);
         return (
           <div style={displayStyle} className={className} title={keyDef.name}>
-            <span style={{ fontSize: `${fontSize}px`, lineHeight: '1', fontFamily: 'monospace', color: effectiveSymbolColor }}> {/* Use resolved color */}
+            <span style={{ fontSize: `${fontSize}px`, lineHeight: '1', fontFamily: 'monospace', color: effectiveSymbolColor }}>
               {cellData.value.charAt(0)}
             </span>
           </div>
@@ -175,7 +175,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
                 y1={line.start.y * unitSize}
                 x2={line.end.x * unitSize}
                 y2={line.end.y * unitSize}
-                stroke={effectiveSymbolColor} // Use resolved color
+                stroke={effectiveSymbolColor}
                 strokeWidth={Math.max(1, unitSize * 0.08)}
                 strokeLinecap="round"
               />
@@ -192,7 +192,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
               display: 'grid',
               gridTemplateColumns: `repeat(${keyWidth}, 1fr)`,
               gridTemplateRows: `repeat(${keyHeight}, 1fr)`,
-              width: '100%', height: '100%', color: effectiveSymbolColor // Use resolved color
+              width: '100%', height: '100%', color: effectiveSymbolColor
           }}>
             {cells.map((row, rIdx) =>
               row.map((cellData, cIdx) => (
