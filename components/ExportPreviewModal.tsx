@@ -141,9 +141,6 @@ export const ExportPreviewModal: React.FC<ExportPreviewModalProps> = ({
       <div className="pt-5 mt-auto">
         <div className="flex justify-end space-x-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleGeneratePreview} isLoading={isLoadingPreview} disabled={isLoadingPreview}>
-            Refresh Preview
-          </Button>
           <Button onClick={handleDownload} disabled={!previewImageSrc || isLoadingPreview} variant="primary">
             Download JPG
           </Button>

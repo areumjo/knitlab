@@ -19,15 +19,8 @@ This will start a local server (usually at http://localhost:4173) so you can see
 
 ## TODO - 06/08/2025
 
-- Add custom logo (favicon) to the website
 - Fix individual cell rate from the image import
 - Fix "Reset Preview" button on save to jpg
-- Update custom keys from search dropdown >> simplify and have the same format
-
-  - 1.  knitting symbols
-  - 2.  text
-  - 3.  emoji
-  - 4. from G: commit, call made, call received, spoke, adjust, contrast, brightness 1, square, pen size 2 (or 3 for slash)
 
 - Custom key:
 
@@ -38,3 +31,8 @@ This will start a local server (usually at http://localhost:4173) so you can see
 3. When create custom key && grid number > 1,
    - add guides lines so we know how many grids added
 4. add ctrl z feature while drawing custom key
+
+- KnitCanvas.tsx: 642
+
+  - when canvas size is bigger than the h-screen, and users use scroll up/down to zoom in and out, there is an error message showing in the console
+  - "Unable to preventDefault inside passive event listener invocation"

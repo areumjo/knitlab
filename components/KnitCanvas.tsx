@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ChartState, StitchSymbolDef, Tool, Point, SelectionRect, ContextMenuItem, HoveredGutterInfo, DraggedCellsInfo, ClipboardData, KeyDefinition, KeyInstance } from '../types';
 import { ContextMenu } from './ContextMenu';
@@ -638,22 +637,33 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [handleGlobalMouseUp]);
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const zoomDirection = e.deltaY < 0 ? 1 : -1;
-    const currentZoomIndex = effectiveZoomLevels.indexOf(zoomLevel);
-    let newZoomIndex = currentZoomIndex + zoomDirection;
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomDirection = e.deltaY < 0 ? 1 : -1;
+      const currentZoomIndex = effectiveZoomLevels.indexOf(zoomLevel);
+      let newZoomIndex = currentZoomIndex + zoomDirection;
 
-    newZoomIndex = Math.max(0, Math.min(effectiveZoomLevels.length - 1, newZoomIndex));
+      newZoomIndex = Math.max(0, Math.min(effectiveZoomLevels.length - 1, newZoomIndex));
 
-    if (effectiveZoomLevels[newZoomIndex] !== zoomLevel) {
+      if (effectiveZoomLevels[newZoomIndex] !== zoomLevel) {
         setZoomLevel(effectiveZoomLevels[newZoomIndex]);
-    } else {
+      } else {
         onViewOffsetChange({ x: viewOffset.x - e.deltaX, y: viewOffset.y - e.deltaY });
-    }
-  };
+      }
+    };
 
-  useEffect(() => { onViewOffsetChange(viewOffset); }, [zoomLevel, canvasSize, cols, rows, chartState.displaySettings, onViewOffsetChange]);
+    const canvasElement = canvasContainerRef.current;
+    if (canvasElement) {
+      canvasElement.addEventListener('wheel', handleWheel, { passive: false });
+    }
+
+    return () => {
+      if (canvasElement) {
+        canvasElement.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, [effectiveZoomLevels, zoomLevel, setZoomLevel, viewOffset, onViewOffsetChange]);
 
   const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -733,7 +743,6 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
       ref={canvasContainerRef}
       className="w-full h-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative select-none touch-none"
       style={{ cursor: cursorStyle }}
-      onWheel={handleWheel}
       onContextMenu={handleContextMenu}
       onMouseMove={handleCanvasMouseMove}
       onMouseDown={handleCanvasMouseDown}

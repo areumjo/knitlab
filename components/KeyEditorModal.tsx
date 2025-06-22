@@ -4,7 +4,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { ColorPicker } from './ColorPicker';
 import { StitchSymbolDisplay } from './StitchSymbolDisplay';
-import { BrushIcon, TextWithUnderlineIcon, BrushWithUnderlineIcon, SearchIcon, XIcon as CloseIcon, ToggleOnIcon, ToggleOffIcon } from './Icon';
+import { BrushIcon, TextWithUnderlineIcon, BrushWithUnderlineIcon, SearchIcon, XIcon as CloseIcon, ToggleOnIcon, ToggleOffIcon, UndoIcon, RedoIcon } from './Icon';
 import {
   DEFAULT_STITCH_COLOR_LIGHT,
   DEFAULT_STITCH_COLOR_DARK,
@@ -710,6 +710,11 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
             ) : (
               <div className='flex flex-col items-center justify-center h-full text-xs font-bold text-neutral-800 dark:text-neutral-100'>
                 <div>
+                  {/* [TODO] implement onClick={onUndo} disabled={!canUndo}, onClick={onRedo} disabled={!canRedo} */}
+                  {/* <Button variant="ghost" size="xs" title="Undo (Ctrl+Z)"><UndoIcon className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="xs" title="Redo (Ctrl+Y)"><RedoIcon className="w-3 h-3"/></Button> */}
+                </div>
+                <div className='p-1'>
                   {editedWidth} x {editedHeight}
                 </div>
                 <div className="relative" style={{

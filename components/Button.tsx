@@ -1,9 +1,8 @@
-
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xs';
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   isLoading?: boolean;
@@ -21,7 +20,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   ...props
 }, ref) => {
   const baseStyle = "font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-800 inline-flex items-center justify-center transition-colors duration-150";
-  
+
   let variantStyle = '';
   switch (variant) {
     case 'primary':
@@ -51,6 +50,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       break;
     case 'lg':
       sizeStyle = 'px-6 py-3 text-lg';
+      break;
+    case 'xs':
+      sizeStyle = 'px-2 py-1 text-xs';
       break;
   }
 
