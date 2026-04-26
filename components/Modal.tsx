@@ -31,13 +31,9 @@ export const Modal: React.FC<ModalProps> = ({
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-neutral-800 bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 bg-neutral-800 bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn">
       <div
         className={`bg-neutral-50 dark:bg-neutral-800 rounded-lg shadow-xl p-6 ${sizeClasses} w-full animate-slideUp flex flex-col max-h-[90vh]`}
-        onClick={(e) => e.stopPropagation()} // Prevent click inside modal from closing it
       >
         <div className="flex items-center justify-between mb-4">
           {typeof title === 'string' ? (

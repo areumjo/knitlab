@@ -47,6 +47,7 @@ import {
 import { useChartHistory } from './hooks/useChartHistory';
 import { getExpandedSelection } from './utils';
 import { generateChartJpeg } from './services/exportService';
+import { serialize, deserialize } from './services/serializationService';
 import { invalidateSymbolColorCache } from './canvasUtils';
 
 const MINIMAP_MAX_WIDTH = 200;
@@ -1134,10 +1135,12 @@ export const App: React.FC = () => {
 
   const handleChartGeneratedFromImage = (chartData: any) => { console.log("Chart data from image importer (raw):", chartData); };
 
-  const processLoadApplicationStateDirectly = (jsonString: string) => {
+  const processLoadApplicationStateDirectly = (data: string) => {
     try {
-        const loadedState = JSON.parse(jsonString);
-        if (loadedState.sheets && loadedState.activeSheetId && loadedState.keyPalette) {
+        // Use the new serialization service (handles both legacy JSON and new compressed format)
+        const loadedState = deserialize(data);
+
+        if (loadedState.sheets && loadedState.keyPalette) {
             const validatedPalette = loadedState.keyPalette.map((k: any) => ({
                 id: k.id || generateNewKeyId(),
                 name: k.name || "Untitled Key",
@@ -1176,7 +1179,7 @@ export const App: React.FC = () => {
             setActiveKeyId(firstKeyInNewPalette || null);
 
         } else {
-            alert("Invalid application state JSON format.");
+            alert("Invalid application state format.");
         }
     } catch (error) {
         console.error("Failed to load application state:", error);
@@ -1657,7 +1660,6 @@ export const App: React.FC = () => {
             isOpen={isDeveloperMenuOpen}
             onClose={() => setIsDeveloperMenuOpen(false)}
             applicationState={applicationState}
-            history={appHistory}
             processLoadState={processLoadApplicationStateDirectly}
             showKeyUsageTally={showKeyUsageTallyGlobal}
             onToggleShowKeyUsageTally={toggleShowKeyUsageTallyGlobal}

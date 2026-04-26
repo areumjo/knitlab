@@ -2,30 +2,31 @@
 import React, { useState } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { ApplicationState, HistoryEntry } from '../types';
+import { DownloadIcon, UploadIcon } from './Icon';
+import { ApplicationState } from '../types';
+import { serialize } from '../services/serializationService';
 import areumKnitlabImg from '../assets/areum-knitlab-i-did-that.png';
 
 interface DeveloperMenuModalProps {
   isOpen: boolean;
   onClose: () => void;
   applicationState: ApplicationState;
-  history: HistoryEntry<ApplicationState>[];
   processLoadState: (jsonString: string) => void;
-  showKeyUsageTally: boolean; // New prop
-  onToggleShowKeyUsageTally: () => void; // New prop
+  showKeyUsageTally: boolean;
+  onToggleShowKeyUsageTally: () => void;
 }
 
 export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
   isOpen,
   onClose,
   applicationState,
-  history,
   processLoadState,
   showKeyUsageTally,
   onToggleShowKeyUsageTally,
 }) => {
-  const [activeView, setActiveView] = useState<'none' | 'history' | 'current' | 'load' | 'settings'>('none');
+  const [activeView, setActiveView] = useState<'none' | 'current' | 'load' | 'settings'>('none');
   const [jsonToLoad, setJsonToLoad] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleLoad = () => {
     if (jsonToLoad.trim()) {
@@ -42,20 +43,66 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
       .catch(err => console.error('Failed to copy data: ', err));
   };
 
+  const handleDownload = () => {
+    try {
+      const serialized = serialize(applicationState);
+      const activeSheet = applicationState.sheets.find(s => s.id === applicationState.activeSheetId);
+      const filename = `${activeSheet?.name || 'chart'}.knitlab`;
+
+      const blob = new Blob([serialized], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download file:', error);
+      alert(`Error downloading file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        try {
+          processLoadState(content);
+        } catch (error) {
+          console.error('Failed to load file:', error);
+          alert(`Error loading file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    };
+    reader.onerror = () => {
+      alert('Error reading file');
+    };
+    reader.readAsText(file);
+
+    // Reset input so same file can be selected again
+    event.target.value = '';
+  };
+
   const renderContent = () => {
     let dataToShow = '';
     let ariaLabel = '';
     let showCopyButton = false;
 
     switch (activeView) {
-      case 'history':
-        dataToShow = JSON.stringify(history, null, 2);
-        ariaLabel = "History data JSON";
-        showCopyButton = true;
-        break;
       case 'current':
-        dataToShow = JSON.stringify(applicationState, null, 2);
-        ariaLabel = "Current application state JSON";
+        // Use the new compressed serialization format
+        dataToShow = serialize(applicationState);
+        ariaLabel = "Current application state (compressed)";
         showCopyButton = true;
         break;
       case 'load':
@@ -100,7 +147,7 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
         );
     }
 
-    if (activeView === 'history' || activeView === 'current') {
+    if (activeView === 'current') {
         return (
             <div className="space-y-2 flex flex-col h-full">
                 <textarea
@@ -119,27 +166,61 @@ export const DeveloperMenuModal: React.FC<DeveloperMenuModalProps> = ({
     return null;
   };
 
+  const titleNode = (
+    <div className="flex items-center justify-between gap-3 flex-grow">
+      <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">Developer Menu</h2>
+      <div className="flex items-center gap-1">
+        <Button onClick={handleDownload} variant="ghost" size="sm" leftIcon={<DownloadIcon />} aria-label="Download chart as .knitlab file">
+          Download
+        </Button>
+        <Button onClick={handleUploadClick} variant="ghost" size="sm" leftIcon={<UploadIcon />} aria-label="Upload .knitlab or .json file">
+          Upload
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".knitlab,.json"
+          onChange={handleFileSelect}
+          className="hidden"
+          aria-label="Upload chart file"
+        />
+      </div>
+    </div>
+  );
+
+  const tabs: Array<{ id: typeof activeView; label: string }> = [
+    { id: 'current', label: 'Current Data' },
+    { id: 'load', label: 'Load from JSON' },
+    { id: 'settings', label: 'Settings' },
+  ];
+
   return (
     <Modal
         isOpen={isOpen}
         onClose={() => { setActiveView('none'); setJsonToLoad(''); onClose(); }}
-        title="Developer Menu"
+        title={titleNode}
         size="xl"
     >
       <div className="flex flex-col space-y-3" style={{minHeight: '60vh'}}>
-        <div className="flex space-x-2 border-b p-2 border-neutral-200 dark:border-neutral-700 flex-shrink-0">
-          <Button onClick={() => setActiveView('history')} variant={activeView === 'history' ? 'primary' : 'outline'} size="sm">
-            View History Data
-          </Button>
-          <Button onClick={() => setActiveView('current')} variant={activeView === 'current' ? 'primary' : 'outline'} size="sm">
-            View Current Data
-          </Button>
-          <Button onClick={() => setActiveView('load')} variant={activeView === 'load' ? 'primary' : 'outline'} size="sm">
-            Load from JSON
-          </Button>
-          <Button onClick={() => setActiveView('settings')} variant={activeView === 'settings' ? 'primary' : 'outline'} size="sm">
-            Settings
-          </Button>
+        <div role="tablist" className="flex gap-1 border-b border-neutral-200 dark:border-neutral-700 flex-shrink-0">
+          {tabs.map(tab => {
+            const isActive = activeView === tab.id;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveView(tab.id)}
+                className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
         <div className="flex-grow overflow-hidden">
           {renderContent()}

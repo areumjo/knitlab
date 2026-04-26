@@ -59,7 +59,8 @@ export const ZoomOutIcon = (props: SpecificIconComponentProps) => <Icon path="M1
 export const SunIcon = (props: SpecificIconComponentProps) => <Icon path="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" {...props} />;
 export const MoonIcon = (props: SpecificIconComponentProps) => <Icon path="M21 12.79A9 9 0 11 11.21 3 7 7 0 00 21 12.79z" {...props} />;
 
-export const UploadIcon = (props: SpecificIconComponentProps) => <Icon path="M3 16.5v-2.25A2.25 2.25 0 015.25 12h13.5A2.25 2.25 0 0121 14.25V16.5m-16.5-4.5L12 7.5m0 0l4.5 4.5M12 7.5v9" {...props} />;
+export const UploadIcon = (props: SpecificIconComponentProps) => <Icon path="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8L12 3L7 8M12 3V15" {...props} />;
+export const DownloadIcon = (props: SpecificIconComponentProps) => <Icon path="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10L12 15L17 10M12 15V3" {...props} />;
 
 export const TextToInstructionIcon = (props: SpecificIconComponentProps) => <Icon path="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z M14 3v5h5M16 13H8M16 17H8M10 9H8" {...props} />;
 export const ExportJpgIcon = (props: SpecificIconComponentProps) => <Icon path="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8" {...props} />;
