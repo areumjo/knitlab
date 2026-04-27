@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { ExternalLinkIcon } from './Icon';
 import { ApplicationState, StitchSymbolDef } from '../types';
 import { generateThumbnail } from '../services/thumbnailService';
-import { serialize } from '../services/serializationService';
+import { serialize, trimForPublish } from '../services/serializationService';
 import { EXPLORE_REPO_OWNER, EXPLORE_REPO_NAME } from '../constants';
 
 interface PublishModalProps {
@@ -14,6 +13,7 @@ interface PublishModalProps {
   allSymbols: StitchSymbolDef[];
   isDarkMode: boolean;
   hasEdits: boolean; // false if chart is identical to its loaded source (no undo available)
+  onOpenHelp: () => void;
 }
 
 const MAX_TITLE = 80;
@@ -78,6 +78,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
   allSymbols,
   isDarkMode,
   hasEdits,
+  onOpenHelp,
 }) => {
   const [view, setView] = useState<View>('form');
   const [title, setTitle] = useState('');
@@ -125,7 +126,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
   const submission = useMemo(() => {
     if (!thumbnailUrl) return null;
     const thumbnailB64 = stripDataUrlPrefix(thumbnailUrl);
-    const payload = serialize(applicationState);
+    const payload = serialize(trimForPublish(applicationState));
     const body = buildIssueBody({
       title: title.trim(),
       author: author.trim(),
@@ -274,15 +275,13 @@ export const PublishModal: React.FC<PublishModalProps> = ({
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
-        <a
-          href={`https://github.com/${EXPLORE_REPO_OWNER}/${EXPLORE_REPO_NAME}/blob/main/docs/PUBLISHING.md`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-primary underline inline-flex items-center gap-1"
+        <button
+          type="button"
+          onClick={() => { onClose(); onOpenHelp(); }}
+          className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-primary underline"
         >
           How publishing works
-          <ExternalLinkIcon className="w-3 h-3" />
-        </a>
+        </button>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" disabled={!canContinue} onClick={() => setView('confirm')}>

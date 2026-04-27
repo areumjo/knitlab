@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Header } from './components/Header';
 import { TabbedSidebar } from './components/TabbedSidebar';
+import { HelpView } from './components/HelpView';
 import { KnitCanvas } from './components/KnitCanvas';
 import { KeyEditorModal } from './components/KeyEditorModal';
 import { ImageImporter } from './components/ImageImporter';
@@ -51,7 +52,7 @@ import {
 import { useChartHistory } from './hooks/useChartHistory';
 import { getExpandedSelection } from './utils';
 import { generateChartJpeg } from './services/exportService';
-import { serialize, deserialize } from './services/serializationService';
+import { deserialize } from './services/serializationService';
 import { invalidateSymbolColorCache } from './canvasUtils';
 
 const MINIMAP_MAX_WIDTH = 200;
@@ -63,12 +64,14 @@ const MINIMAP_SIDE_MARGIN = 8; // Gap between sidebar and minimap, and minimap a
 const ICON_RIBBON_WIDTH_CONST = 56; // From TabbedSidebar
 
 // Map URL pathname → app view. Strips the Vite base ("/knitlab/") and
-// returns 'explore' only for an exact `/explore` (with optional trailing
-// slash) so unrelated paths fall back to the editor.
-function pathToView(pathname: string): 'editor' | 'explore' {
+// returns the matching view for known sub-paths; everything else falls back
+// to the editor.
+function pathToView(pathname: string): 'editor' | 'explore' | 'help' {
   const base = import.meta.env.BASE_URL;
   const rel = (pathname.startsWith(base) ? pathname.slice(base.length) : pathname).replace(/\/$/, '');
-  return rel === 'explore' ? 'explore' : 'editor';
+  if (rel === 'explore') return 'explore';
+  if (rel === 'help') return 'help';
+  return 'editor';
 }
 
 export const App: React.FC = () => {
@@ -78,7 +81,6 @@ export const App: React.FC = () => {
     undo, redo, canUndo, canRedo,
     resetHistory: resetAppHistory,
     updateCurrentState,
-    history: appHistory // Get the full history array
   } = useChartHistory(INITIAL_APPLICATION_STATE);
 
   const activeSheet = applicationState.sheets.find(s => s.id === applicationState.activeSheetId) || applicationState.sheets[0] || INITIAL_CHART_STATE;
@@ -101,9 +103,10 @@ export const App: React.FC = () => {
   const [isExportPreviewModalOpen, setIsExportPreviewModalOpen] = useState(false);
   const [isDeveloperMenuOpen, setIsDeveloperMenuOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [appView, setAppView] = useState<'editor' | 'explore'>(
-    () => (typeof window !== 'undefined' && pathToView(window.location.pathname) === 'explore' ? 'explore' : 'editor')
+  const [appView, setAppView] = useState<'editor' | 'explore' | 'help'>(
+    () => (typeof window !== 'undefined' ? pathToView(window.location.pathname) : 'editor')
   );
+  const [helpInitialAnchor, setHelpInitialAnchor] = useState<import('./components/HelpView').HelpAnchor | undefined>(undefined);
 
   // Sync appView <-> URL pathname so /knitlab/explore deep-links into the
   // gallery and the browser back/forward buttons move between editor and
@@ -121,7 +124,10 @@ export const App: React.FC = () => {
   }, []);
   useEffect(() => {
     const base = import.meta.env.BASE_URL;
-    const targetPath = appView === 'explore' ? `${base}explore` : base;
+    const targetPath =
+      appView === 'explore' ? `${base}explore` :
+      appView === 'help' ? `${base}help` :
+      base;
     if (window.location.pathname !== targetPath) {
       window.history.pushState(null, '', targetPath + window.location.search);
     }
@@ -251,18 +257,24 @@ export const App: React.FC = () => {
 
 
   useEffect(() => {
+    // Only attach when the editor is actually rendered — in help/explore views
+    // the <main> element is unmounted and the ref is null. Re-run on appView
+    // changes so we re-attach to the freshly-mounted <main> when we come back.
+    if (appView !== 'editor') return;
+    const el = mainCanvasWrapperRef.current;
+    if (!el) return;
     const updateSize = () => {
-      if (mainCanvasWrapperRef.current) {
-        setCanvasContainerSize({
-          width: mainCanvasWrapperRef.current.offsetWidth,
-          height: mainCanvasWrapperRef.current.offsetHeight,
-        });
-      }
+      setCanvasContainerSize({ width: el.offsetWidth, height: el.offsetHeight });
     };
     updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
+    // Observe the main element directly so the canvas buffer reallocates on any
+    // size change — not just window resizes. Without this, opening the side
+    // panel shrinks main but leaves the buffer at its old size, and CSS
+    // width:100% squishes the pixels into a non-square aspect ratio.
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [appView]);
 
   useEffect(() => {
     if (!activeKeyId || !applicationState.keyPalette.find(k => k.id === activeKeyId)) {
@@ -342,11 +354,6 @@ export const App: React.FC = () => {
           return prevAppState;
       }
       const newPalette = prevAppState.keyPalette.filter(k => k.id !== keyIdToDelete);
-      let newActiveKeyIdCandidate = activeKeyId;
-
-      if (activeKeyId === keyIdToDelete) {
-        newActiveKeyIdCandidate = newPalette[0]?.id || null;
-      }
 
       const updatedSheets = prevAppState.sheets.map(sheet => {
         const newLayers = sheet.layers.map(layer => {
@@ -572,7 +579,7 @@ export const App: React.FC = () => {
   };
 
   const handleAddLayer = () => {
-    modifyActiveSheetLayer((currentLayer, chartRows, chartCols, currentKeyPalette) => {
+    modifyActiveSheetLayer((_currentLayer, chartRows, chartCols, _currentKeyPalette) => {
       const newLayerName = `Layer ${activeSheet.layers.length + 1}`;
       const newLayer: Layer = {
         id: `layer_${Date.now()}`,
@@ -696,7 +703,7 @@ export const App: React.FC = () => {
   const applyActiveKeyToSelection = useCallback(() => applyOrClearSelection(true), [applyOrClearSelection]);
   const clearAllInCurrentSelection = useCallback(() => applyOrClearSelection(false), [applyOrClearSelection]);
 
-  const handleSelectionDragStart = (dragInfo: DraggedCellsInfo, initialGridPos: Point, event: React.MouseEvent) => {
+  const handleSelectionDragStart = (dragInfo: DraggedCellsInfo, initialGridPos: Point, _event: React.MouseEvent) => {
     setIsDraggingSelection(true);
     setIsActuallyDrawingSel(false);
     setSelectionAnchorPoint(null);
@@ -704,14 +711,14 @@ export const App: React.FC = () => {
     setDragPreviewSnappedGridPosition(initialGridPos);
   };
 
-  const handleSelectionDragMove = (snappedGridPos: Point, event: React.MouseEvent) => {
+  const handleSelectionDragMove = (snappedGridPos: Point, _event: React.MouseEvent) => {
     if (!isDraggingSelection || !draggedCellsInfo || !activeSheet) return;
     const clampedX = Math.max(0, Math.min(activeSheet.cols - draggedCellsInfo.width, snappedGridPos.x));
     const clampedY = Math.max(0, Math.min(activeSheet.rows - draggedCellsInfo.height, snappedGridPos.y));
     setDragPreviewSnappedGridPosition({ x: clampedX, y: clampedY });
   };
 
-  const handleSelectionDragEnd = (dropTarget: Point | null, event: React.MouseEvent) => {
+  const handleSelectionDragEnd = (dropTarget: Point | null, _event: React.MouseEvent) => {
     if (!isDraggingSelection || !draggedCellsInfo || !dropTarget || !activeSheet.activeLayerId) {
       setIsDraggingSelection(false);
       setDraggedCellsInfo(null);
@@ -1511,6 +1518,7 @@ export const App: React.FC = () => {
         onOpenExportModal={() => setIsExportPreviewModalOpen(true)}
         onOpenPublish={() => setIsPublishModalOpen(true)}
         onOpenExplore={() => setAppView('explore')}
+        onOpenHelp={() => { setHelpInitialAnchor(undefined); setAppView('help'); }}
         onImport={() => setIsImageImporterOpen(true)}
         onGenerateInstructions={() => setIsInstructionsGeneratorOpen(true)}
         currentZoom={currentZoom}
@@ -1674,10 +1682,16 @@ export const App: React.FC = () => {
       </footer>
       {devContextMenu?.visible && <ContextMenu x={devContextMenu.x} y={devContextMenu.y} items={devContextMenu.items} onClose={() => setDevContextMenu(null)} />}
       </>
+      ) : appView === 'help' ? (
+      <HelpView
+        onBackToEditor={() => setAppView('editor')}
+        initialAnchor={helpInitialAnchor}
+      />
       ) : (
       <ExploreGallery
         onOpenInEditor={handleOpenDesignRequested}
         onBackToEditor={() => setAppView('editor')}
+        onOpenHelp={() => { setHelpInitialAnchor('publishing'); setAppView('help'); }}
       />
       )}
 
@@ -1801,6 +1815,7 @@ export const App: React.FC = () => {
             allSymbols={allSymbols}
             isDarkMode={isDarkMode}
             hasEdits={canUndo}
+            onOpenHelp={() => { setHelpInitialAnchor('publishing'); setAppView('help'); }}
         />
       )}
     </div>

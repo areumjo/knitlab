@@ -93,9 +93,17 @@ export async function drawStitchSymbolOnCanvas(
   
   // For lines, the "cellSize" for caching refers to the target cell dimensions on the main canvas.
   // For symbols (SVG/text), it's the actual symbolDrawSize.
-  const symbolDrawSize = cellSize * 0.85; 
+  const symbolDrawSize = cellSize * 0.85;
   const symbolRenderX = targetX + (cellSize - symbolDrawSize) / 2;
   const symbolRenderY = targetY + (cellSize - symbolDrawSize) / 2;
+
+  // Lines that sit on a cell-part's edge (the outer borders of a multi-cell key)
+  // would otherwise have half their stroke width clipped by the offscreen canvas
+  // bounds, so they'd render thinner than interior strokes (e.g. diagonals).
+  // Pad the offscreen by half the stroke width on every side and shift draws to
+  // compensate, so edge strokes can render at full thickness too.
+  const lineStrokeWidth = Math.max(1, cellSize * 0.08);
+  const linePadding = Math.ceil(lineStrokeWidth / 2);
 
   // Generate a unique cache key based on relevant properties
   let cacheKey: string;
@@ -116,10 +124,11 @@ export async function drawStitchSymbolOnCanvas(
   const cached = symbolCache.get(cacheKey);
   if (cached) {
     cached.lastUsed = Date.now();
-    // Lines are drawn directly at targetX, targetY as their cache is cell-sized
-    // Symbols are drawn at symbolRenderX, symbolRenderY as their cache is symbolDrawSize-d
-    const drawX = (keyDef.lines && keyDef.lines.length > 0) ? targetX : symbolRenderX;
-    const drawY = (keyDef.lines && keyDef.lines.length > 0) ? targetY : symbolRenderY;
+    // Line caches are sized cellSize + 2*linePadding and drawn shifted by
+    // -linePadding so the cell origin lands at (targetX, targetY).
+    // Symbol caches are symbolDrawSize-sized and drawn at the centred position.
+    const drawX = (keyDef.lines && keyDef.lines.length > 0) ? targetX - linePadding : symbolRenderX;
+    const drawY = (keyDef.lines && keyDef.lines.length > 0) ? targetY - linePadding : symbolRenderY;
     ctx.drawImage(cached.canvas, drawX, drawY);
     return;
   }
@@ -128,18 +137,21 @@ export async function drawStitchSymbolOnCanvas(
 
   if (keyDef.lines && keyDef.lines.length > 0) {
     const tempOffscreen = document.createElement('canvas');
-    tempOffscreen.width = Math.max(1, Math.ceil(cellSize));
-    tempOffscreen.height = Math.max(1, Math.ceil(cellSize));
+    tempOffscreen.width = Math.max(1, Math.ceil(cellSize) + 2 * linePadding);
+    tempOffscreen.height = Math.max(1, Math.ceil(cellSize) + 2 * linePadding);
     const tempCtx = tempOffscreen.getContext('2d');
     if (tempCtx) {
       tempCtx.strokeStyle = effectiveSymbolColor;
-      tempCtx.lineWidth = Math.max(1, cellSize * 0.08);
-      tempCtx.lineCap = 'round';
+      tempCtx.lineWidth = lineStrokeWidth;
+      // butt instead of round — round caps add a half-disk extending half a
+      // stroke-width past each endpoint, which intrudes into neighbouring cells
+      // when a stroke ends on a cell corner (e.g., an X drawn in a 1x1 key).
+      tempCtx.lineCap = 'butt';
       for (const line of keyDef.lines) {
-        const x1 = (line.start.x - keyPartColOffset) * cellSize;
-        const y1 = (line.start.y - keyPartRowOffset) * cellSize;
-        const x2 = (line.end.x - keyPartColOffset) * cellSize;
-        const y2 = (line.end.y - keyPartRowOffset) * cellSize;
+        const x1 = (line.start.x - keyPartColOffset) * cellSize + linePadding;
+        const y1 = (line.start.y - keyPartRowOffset) * cellSize + linePadding;
+        const x2 = (line.end.x - keyPartColOffset) * cellSize + linePadding;
+        const y2 = (line.end.y - keyPartRowOffset) * cellSize + linePadding;
         tempCtx.beginPath();
         tempCtx.moveTo(x1, y1);
         tempCtx.lineTo(x2, y2);
@@ -174,8 +186,8 @@ export async function drawStitchSymbolOnCanvas(
   if (offscreenCanvasToCache) {
     symbolCache.set(cacheKey, { canvas: offscreenCanvasToCache, lastUsed: Date.now() });
     evictCache();
-    const drawX = (keyDef.lines && keyDef.lines.length > 0) ? targetX : symbolRenderX;
-    const drawY = (keyDef.lines && keyDef.lines.length > 0) ? targetY : symbolRenderY;
+    const drawX = (keyDef.lines && keyDef.lines.length > 0) ? targetX - linePadding : symbolRenderX;
+    const drawY = (keyDef.lines && keyDef.lines.length > 0) ? targetY - linePadding : symbolRenderY;
     ctx.drawImage(offscreenCanvasToCache, drawX, drawY);
   }
 }

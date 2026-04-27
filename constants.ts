@@ -259,7 +259,7 @@ export const insertRowInKeyPlacements = (
   placements: KeyInstance[],
   rowIndex: number,
   oldGrid: ChartGrid, // Grid state *before* row insertion (conceptual)
-  keyPalette: KeyDefinition[],
+  _keyPalette: KeyDefinition[],
   numCols: number
 ): KeyInstance[] => {
   const shiftedPlacements = placements.map(p => {
@@ -294,7 +294,7 @@ export const insertRowInKeyPlacements = (
   return [...shiftedPlacements, ...newRowPlacements];
 };
 
-export const deleteRowInKeyPlacements = (placements: KeyInstance[], rowIndex: number, keyPalette: KeyDefinition[], newNumRows: number): KeyInstance[] => {
+export const deleteRowInKeyPlacements = (placements: KeyInstance[], rowIndex: number, keyPalette: KeyDefinition[], _newNumRows: number): KeyInstance[] => {
   return placements
     .filter(p => {
       const keyDef = keyPalette.find(k => k.id === p.keyId);
@@ -315,7 +315,7 @@ export const insertColInKeyPlacements = (
   placements: KeyInstance[],
   colIndex: number,
   oldGrid: ChartGrid, // Grid state *before* column insertion
-  keyPalette: KeyDefinition[],
+  _keyPalette: KeyDefinition[],
   numRows: number
 ): KeyInstance[] => {
   const shiftedPlacements = placements.map(p => {
@@ -343,7 +343,7 @@ export const insertColInKeyPlacements = (
   return [...shiftedPlacements, ...newColPlacements];
 };
 
-export const deleteColInKeyPlacements = (placements: KeyInstance[], colIndex: number, keyPalette: KeyDefinition[], newNumCols: number): KeyInstance[] => {
+export const deleteColInKeyPlacements = (placements: KeyInstance[], colIndex: number, keyPalette: KeyDefinition[], _newNumCols: number): KeyInstance[] => {
  return placements
     .filter(p => {
         const keyDef = keyPalette.find(k => k.id === p.keyId);

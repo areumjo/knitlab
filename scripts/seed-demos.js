@@ -17,18 +17,21 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import { fileURLToPath } from 'url';
-import { pack } from 'msgpackr';
-import { compressSync } from 'fflate';
+import { pack, unpack } from 'msgpackr';
+import { compressSync, decompressSync } from 'fflate';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ---- Edit this list to change demo metadata ----
+// `file` may be a `.knitlab` (compressed payload, exported from the app) or a
+// legacy `.json` (raw ApplicationState). Both are passed through trimForPublish
+// before being written to public/designs/.
 const DEMOS = [
-  { file: 'clawd-0-logo.json',       id: '1', title: 'Claude Logo',  tags: ['logo', 'clawd'],          description: 'Claude logo chart.' },
-  { file: 'clawd-1-coffee.json',     id: '2', title: 'Coffee',       tags: ['coffee', 'clawd'],        description: 'Coffee cup chart.' },
-  { file: 'clawd-2-magnifier.json',  id: '3', title: 'Magnifier',    tags: ['magnifier', 'clawd'],     description: 'Magnifying glass chart.' },
-  { file: 'clawd-3-skateboard.json', id: '4', title: 'Skateboard',   tags: ['skateboard', 'clawd'],    description: 'Skateboard chart.' },
+  { file: 'clawd-0-logo.knitlab',       id: '1', title: 'Claude Logo',  tags: ['logo', 'clawd'],          description: 'Claude logo chart.' },
+  { file: 'clawd-1-coffee.knitlab',     id: '2', title: 'Coffee',       tags: ['coffee', 'clawd'],        description: 'Coffee cup chart.' },
+  { file: 'clawd-2-magnifier.knitlab',  id: '3', title: 'Magnifier',    tags: ['magnifier', 'clawd'],     description: 'Magnifying glass chart.' },
+  { file: 'clawd-3-skateboard.knitlab', id: '4', title: 'Skateboard',   tags: ['skateboard', 'clawd'],    description: 'Skateboard chart.' },
 ];
 
 const AUTHOR = 'Areum Jo';
@@ -41,6 +44,131 @@ const DEMO_DIR = path.join(ROOT, 'demo');
 const DESIGNS_DIR = path.join(ROOT, 'public', 'designs');
 const THUMBNAILS_DIR = path.join(ROOT, 'public', 'thumbnails');
 const MANIFEST_PATH = path.join(ROOT, 'public', 'manifest.json');
+
+// ---- Built-in key ids (mirrors constants.ts) ----
+const KEY_ID_KNIT_DEFAULT = 'key_knit_default';
+const KEY_ID_PURL_DEFAULT = 'key_purl_default';
+const KEY_ID_EMPTY = 'key_empty_no_stitch';
+const BUILTIN_KEY_IDS = new Set([KEY_ID_KNIT_DEFAULT, KEY_ID_PURL_DEFAULT, KEY_ID_EMPTY]);
+
+// ---- Trim for publish (mirrors services/serializationService.ts) ----
+
+function trimForPublish(state) {
+  const activeSheet =
+    state.sheets.find(s => s.id === state.activeSheetId) ?? state.sheets[0];
+  if (!activeSheet) return state;
+
+  const referencedKeyIds = new Set(BUILTIN_KEY_IDS);
+  for (const layer of activeSheet.layers) {
+    for (const placement of layer.keyPlacements ?? []) {
+      referencedKeyIds.add(placement.keyId);
+    }
+  }
+
+  const trimmedPalette = state.keyPalette.filter(k => referencedKeyIds.has(k.id));
+
+  return {
+    ...state,
+    keyPalette: trimmedPalette,
+    sheets: [activeSheet],
+    activeSheetId: activeSheet.id,
+  };
+}
+
+// ---- Grid rebuild (mirrors constants.ts buildGridFromKeyPlacements) ----
+
+function buildGridFromKeyPlacements(placements, rows, cols, keyPalette) {
+  const grid = {};
+  for (let r = 0; r < rows; r++) {
+    grid[r] = {};
+    for (let c = 0; c < cols; c++) {
+      grid[r][c] = { keyId: KEY_ID_KNIT_DEFAULT, isAnchorCellForMxN: false, keyPartRowOffset: 0, keyPartColOffset: 0 };
+    }
+  }
+
+  const sorted = [...placements].sort((a, b) => {
+    const keyA = keyPalette.find(k => k.id === a.keyId);
+    const keyB = keyPalette.find(k => k.id === b.keyId);
+    if (!keyA || !keyB) return 0;
+    const contentfulA = (keyA.cells && keyA.cells.flat().some(c => c !== null)) || (keyA.lines && keyA.lines.length > 0);
+    const contentfulB = (keyB.cells && keyB.cells.flat().some(c => c !== null)) || (keyB.lines && keyB.lines.length > 0);
+    if (contentfulA && !contentfulB) return -1;
+    if (!contentfulA && contentfulB) return 1;
+    const areaA = keyA.width * keyA.height;
+    const areaB = keyB.width * keyB.height;
+    if (contentfulA === contentfulB && areaB !== areaA) return areaB - areaA;
+    if (a.anchor.y !== b.anchor.y) return a.anchor.y - b.anchor.y;
+    return a.anchor.x - b.anchor.x;
+  });
+
+  for (const placement of sorted) {
+    const keyDef = keyPalette.find(k => k.id === placement.keyId);
+    if (!keyDef) continue;
+    for (let rO = 0; rO < keyDef.height; rO++) {
+      for (let cO = 0; cO < keyDef.width; cO++) {
+        const tr = placement.anchor.y + rO;
+        const tc = placement.anchor.x + cO;
+        if (tr >= 0 && tr < rows && tc >= 0 && tc < cols) {
+          grid[tr][tc] = {
+            keyId: placement.keyId,
+            isAnchorCellForMxN: rO === 0 && cO === 0 && (keyDef.width > 1 || keyDef.height > 1),
+            keyPartRowOffset: rO,
+            keyPartColOffset: cO,
+          };
+        }
+      }
+    }
+  }
+  return grid;
+}
+
+// ---- Deserialize .knitlab (mirrors services/serializationService.ts) ----
+
+function deserializeKnitlab(base64) {
+  const compressed = Buffer.from(base64.trim(), 'base64');
+  const decompressed = decompressSync(new Uint8Array(compressed));
+  const compact = unpack(decompressed);
+
+  const fullKeyPalette = compact.p.map(k => ({
+    id: k.i, name: k.n, abbreviation: k.ab,
+    width: k.w, height: k.h,
+    backgroundColor: k.bg, symbolColor: k.sc,
+    cells: k.c, lines: k.l,
+  }));
+
+  return {
+    keyPalette: fullKeyPalette,
+    sheets: compact.s.map(s => ({
+      id: s.i, name: s.n, rows: s.r, cols: s.c,
+      orientation: s.o, displaySettings: s.d,
+      layers: s.l.map(layer => {
+        const keyPlacements = (layer.k || []).map(kp => ({
+          anchor: { x: kp.x, y: kp.y },
+          keyId: kp.id,
+        }));
+        return {
+          id: layer.i, name: layer.n, isVisible: layer.v,
+          keyPlacements,
+          grid: buildGridFromKeyPlacements(keyPlacements, s.r, s.c, fullKeyPalette),
+        };
+      }),
+      activeLayerId: s.al,
+    })),
+    activeSheetId: compact.a,
+    ...(compact.od && { originalDesignId: compact.od }),
+    ...(compact.oa && { originalAuthor: compact.oa }),
+    ...(compact.ot && { originalTitle: compact.ot }),
+  };
+}
+
+function loadDemoState(filePath) {
+  const raw = fs.readFileSync(filePath, 'utf-8');
+  if (filePath.endsWith('.knitlab')) {
+    return deserializeKnitlab(raw);
+  }
+  // legacy .json (raw ApplicationState)
+  return JSON.parse(raw);
+}
 
 // ---- Compact serialization (mirrors services/serializationService.ts) ----
 
@@ -183,17 +311,18 @@ function main() {
   const date = new Date().toISOString().split('T')[0];
 
   for (const demo of DEMOS) {
-    const jsonPath = path.join(DEMO_DIR, demo.file);
-    if (!fs.existsSync(jsonPath)) {
+    const filePath = path.join(DEMO_DIR, demo.file);
+    if (!fs.existsSync(filePath)) {
       console.warn(`SKIP: ${demo.file} not found`);
       continue;
     }
-    const state = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    const state = loadDemoState(filePath);
+    const trimmed = trimForPublish(state);
 
-    const payload = serialize(state);
+    const payload = serialize(trimmed);
     fs.writeFileSync(path.join(DESIGNS_DIR, `${demo.id}.knitlab`), payload);
 
-    const png = renderThumbnail(state);
+    const png = renderThumbnail(trimmed);
     fs.writeFileSync(path.join(THUMBNAILS_DIR, `${demo.id}.png`), png);
 
     manifest.designs.push({
@@ -209,7 +338,7 @@ function main() {
       issueUrl: REPO_URL,
     });
 
-    const sheet = state.sheets[0];
+    const sheet = trimmed.sheets[0];
     console.log(`Seeded #${demo.id}: ${demo.title} (${sheet.cols}x${sheet.rows})`);
   }
 

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { ContextMenuItem, StitchSymbolDef } from '../types'; // Assuming StitchSymbolDef might be used elsewhere, keeping for safety. Actual fix only involves ContextMenuItem.
+import { ContextMenuItem } from '../types';
 
 interface ContextMenuProps {
   x: number;

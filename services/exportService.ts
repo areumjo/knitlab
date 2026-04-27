@@ -1,4 +1,4 @@
-import { ChartState, KeyDefinition, StitchSymbolDef, Line, KeyCellContent } from '../types';
+import { ChartState, KeyDefinition, StitchSymbolDef } from '../types';
 import {
   CELL_SIZE,
   GUTTER_SIZE,
@@ -31,7 +31,7 @@ async function drawSymbolSvgOnCanvas(
     // Ensure SVG has a viewBox and fill/stroke are set to currentColor or a specific color that can be overridden
     const fullSvgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 24 24" style="color: ${symbolColor};">${svgContent}</svg>`;
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
         const img = new Image();
         img.onload = () => {
             ctx.drawImage(img, x, y, width, height);
@@ -131,14 +131,10 @@ export async function generateChartJpeg(
           if (keyDef.lines && keyDef.lines.length > 0) {
             ctx.strokeStyle = symbolColor;
             ctx.lineWidth = Math.max(1, scaledCellSize * 0.08);
-            ctx.lineCap = 'round';
-            const linesToDraw = (keyDef.width > 1 || keyDef.height > 1)
-              ? keyDef.lines.filter(line => { // Basic clipping for lines within the current cell part
-                  const inCellOffsetX = keyPartColOffset * scaledCellSize;
-                  const inCellOffsetY = keyPartRowOffset * scaledCellSize;
-                  return true; // Simplified: for now draw all lines of an MxN symbol, let svg viewBox handle it
-                })
-              : keyDef.lines;
+            ctx.lineCap = 'butt';
+            // For multi-cell keys we currently draw all lines and rely on the SVG
+            // viewBox to clip; per-cell-part clipping isn't implemented.
+            const linesToDraw = keyDef.lines;
 
             linesToDraw.forEach(line => {
                 ctx.beginPath();

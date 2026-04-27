@@ -99,10 +99,10 @@ export const CopyIcon = (props: SpecificIconComponentProps) => <Icon path="M9 7h
 export const CutIcon = (props: SpecificIconComponentProps) => <Icon path="M6 3a3 3 0 100 6 3 3 0 000-6zM6 15a3 3 0 100 6 3 3 0 000-6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" {...props} />;
 export const PasteIcon = (props: SpecificIconComponentProps) => <Icon path="M16 4h2a2 2 0 011 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M9 2h6a1 1 0 011 1v2a1 1 0 01-1 1H9a1 1 0 01-1-1V3a1 1 0 011-1z" {...props} />;
 
-export const TextWithUnderlineIcon = (props: SpecificIconComponentProps) => (
+export const TextWithUnderlineIcon = (_props: SpecificIconComponentProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M80 0v-160h800V0H80Zm140-280 210-560h100l210 560h-96l-50-144H368l-52 144h-96Zm176-224h168l-82-232h-4l-82 232Z"/></svg>
 );
-export const BrushWithUnderlineIcon = (props: SpecificIconComponentProps) => (
+export const BrushWithUnderlineIcon = (_props: SpecificIconComponentProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="m247-904 57-56 343 343q23 23 23 57t-23 57L457-313q-23 23-57 23t-57-23L153-503q-23-23-23-57t23-57l190-191-96-96Zm153 153L209-560h382L400-751Zm360 471q-33 0-56.5-23.5T680-360q0-21 12.5-45t27.5-45q9-12 19-25t21-25q11 12 21 25t19 25q15 21 27.5 45t12.5 45q0 33-23.5 56.5T760-280ZM80 0v-160h800V0H80Z"/></svg>
 );
 export const EmptySquareWithBorderIcon = (props: SpecificIconComponentProps) => (
@@ -114,4 +114,8 @@ export const ToggleOffIcon = (props: SpecificIconComponentProps) => <EmptySquare
 
 export const InformationCircleIcon = (props: SpecificIconComponentProps) => (
   <Icon path="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor" {...props} />
+);
+
+export const HelpCircleIcon = (props: SpecificIconComponentProps) => (
+  <Icon path="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" {...props} />
 );

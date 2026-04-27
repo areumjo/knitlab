@@ -94,7 +94,41 @@ After committing, the next push to `main` deploys.
 
 ## Bypass: seeding demos without going through the issue flow
 
-Use `scripts/seed-demos.js` to bulk-import legacy `.json` files from `/demo/` directly into the gallery. This is the path used to populate the initial Clawd demos. See the script's header comment for details. Re-running it overwrites entries with matching IDs.
+Use `scripts/seed-demos.js` to bulk-import `.knitlab` files from `/demo/` directly into the gallery. The script always applies `trimForPublish` (active sheet + referenced palette only) before writing, so whatever sheet was active when you saved the `.knitlab` is the one that ships.
+
+### Add a new demo
+
+1. In the editor, draw the chart and use **Save** to download a `.knitlab` file. Drop it in `/demo/<slug>.knitlab`.
+2. Add a row to the `DEMOS` list at the top of `scripts/seed-demos.js` with the file name, a fresh `id` (next integer), title, tags, and description.
+3. Run `node scripts/seed-demos.js`. It writes `public/designs/<id>.knitlab`, regenerates the thumbnail, and appends a manifest entry.
+4. Commit and push to `main`.
+
+### Update an existing demo's chart
+
+1. Open the chart in the editor (or draw the new version), then **Save** a fresh `.knitlab`.
+2. Replace `/demo/<slug>.knitlab` with the new file — keep the same filename so the `DEMOS` row still matches.
+3. Run `node scripts/seed-demos.js`. The matching `id` entry is overwritten in place; payload, thumbnail, and `date` are refreshed.
+4. Commit and push.
+
+### Update only metadata (title, tags, description)
+
+1. Edit the row in `DEMOS` in `scripts/seed-demos.js`.
+2. Run `node scripts/seed-demos.js` — the manifest entry is rewritten.
+3. Commit and push.
+
+> One-off tweaks to title/tags can also be hand-edited directly in `public/manifest.json`. The seed script only touches entries whose `id` is in `DEMOS`, so direct edits to other entries won't be clobbered.
+
+### Remove a demo
+
+The seed script does not clean up entries you've removed from `DEMOS` — it only overwrites or appends. To remove a demo:
+
+1. Delete its row from `DEMOS` in `scripts/seed-demos.js`.
+2. Delete `public/designs/<id>.knitlab` and `public/thumbnails/<id>.png`.
+3. Remove its entry from `public/manifest.json`.
+4. (Optional) delete the source `/demo/<slug>.knitlab`.
+5. Commit and push.
+
+Re-running the seed script is idempotent — entries with matching IDs are overwritten, never duplicated.
 
 ## What's NOT automated
 

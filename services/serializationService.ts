@@ -1,7 +1,14 @@
 import { pack, unpack } from 'msgpackr';
-import { compressSync, decompressSync, strFromU8, strToU8 } from 'fflate';
-import { ApplicationState, ChartState, Layer, KeyDefinition } from '../types';
-import { buildGridFromKeyPlacements } from '../constants';
+import { compressSync, decompressSync } from 'fflate';
+import { ApplicationState, ChartState, KeyDefinition, KeyCellContent, Line } from '../types';
+import {
+  buildGridFromKeyPlacements,
+  KEY_ID_KNIT_DEFAULT,
+  KEY_ID_PURL_DEFAULT,
+  KEY_ID_EMPTY,
+} from '../constants';
+
+const BUILTIN_KEY_IDS = new Set([KEY_ID_KNIT_DEFAULT, KEY_ID_PURL_DEFAULT, KEY_ID_EMPTY]);
 
 const CURRENT_VERSION = 1;
 
@@ -26,8 +33,8 @@ interface CompactKeyDefinition {
   h: number;                    // height
   bg: string;                   // backgroundColor
   sc: string;                   // symbolColor
-  c?: any[][] | null;           // cells
-  l?: any[] | null;             // lines
+  c?: (KeyCellContent | null)[][]; // cells
+  l?: Line[];                   // lines
 }
 
 interface CompactChartState {
@@ -35,8 +42,8 @@ interface CompactChartState {
   n: string;                    // name
   r: number;                    // rows
   c: number;                    // cols
-  o: string;                    // orientation
-  d: any;                       // displaySettings
+  o: ChartState['orientation']; // orientation
+  d: ChartState['displaySettings']; // displaySettings
   l: CompactLayer[];            // layers
   al: string | null;            // activeLayerId
 }
@@ -97,7 +104,7 @@ function toCompactFormat(state: ApplicationState): CompactApplicationState {
 /**
  * Convert compact format back to full ApplicationState
  */
-function fromCompactFormat(compact: CompactApplicationState, keyPalette: KeyDefinition[]): ApplicationState {
+function fromCompactFormat(compact: CompactApplicationState, _keyPalette: KeyDefinition[]): ApplicationState {
   const fullKeyPalette: KeyDefinition[] = compact.p.map(k => ({
     id: k.i,
     name: k.n,
@@ -142,6 +149,33 @@ function fromCompactFormat(compact: CompactApplicationState, keyPalette: KeyDefi
     ...(compact.od && { originalDesignId: compact.od }),
     ...(compact.oa && { originalAuthor: compact.oa }),
     ...(compact.ot && { originalTitle: compact.ot }),
+  };
+}
+
+/**
+ * Reduce an ApplicationState to just what should ship in a published design:
+ * the active sheet, plus the palette entries it actually references. Sibling
+ * sheets and unreferenced custom stitches from the user's workspace are dropped.
+ */
+export function trimForPublish(state: ApplicationState): ApplicationState {
+  const activeSheet =
+    state.sheets.find(s => s.id === state.activeSheetId) ?? state.sheets[0];
+  if (!activeSheet) return state;
+
+  const referencedKeyIds = new Set<string>(BUILTIN_KEY_IDS);
+  for (const layer of activeSheet.layers) {
+    for (const placement of layer.keyPlacements ?? []) {
+      referencedKeyIds.add(placement.keyId);
+    }
+  }
+
+  const trimmedPalette = state.keyPalette.filter(k => referencedKeyIds.has(k.id));
+
+  return {
+    ...state,
+    keyPalette: trimmedPalette,
+    sheets: [activeSheet],
+    activeSheetId: activeSheet.id,
   };
 }
 

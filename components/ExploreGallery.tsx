@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from './Button';
 import { Manifest, ManifestEntry } from '../types';
-import { EXPLORE_REPO_OWNER, EXPLORE_REPO_NAME } from '../constants';
 import { DesignDetailView } from './DesignDetailView';
-import { ArrowLeftIcon, ExternalLinkIcon, SearchIcon } from './Icon';
+import { ArrowLeftIcon, SearchIcon } from './Icon';
 
 interface ExploreGalleryProps {
   onOpenInEditor: (entry: ManifestEntry) => void;
   onBackToEditor: () => void;
+  onOpenHelp: () => void;
 }
 
 type SortMode = 'newest' | 'random';
@@ -24,6 +24,7 @@ function shuffle<T>(arr: T[]): T[] {
 export const ExploreGallery: React.FC<ExploreGalleryProps> = ({
   onOpenInEditor,
   onBackToEditor,
+  onOpenHelp,
 }) => {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -113,15 +114,13 @@ export const ExploreGallery: React.FC<ExploreGalleryProps> = ({
           Explore
         </h2>
         <div className="flex-1 flex justify-end">
-          <a
-            href={`https://github.com/${EXPLORE_REPO_OWNER}/${EXPLORE_REPO_NAME}/blob/main/docs/PUBLISHING.md`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-primary underline inline-flex items-center gap-1"
+          <button
+            type="button"
+            onClick={onOpenHelp}
+            className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-primary underline"
           >
             How publishing works
-            <ExternalLinkIcon className="w-3 h-3" />
-          </a>
+          </button>
         </div>
       </div>
 

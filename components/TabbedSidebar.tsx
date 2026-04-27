@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Layer, Point, ChartState as GlobalChartState, TabId, ChartState } from '../types';
+import { Layer, TabId, ChartState } from '../types';
 import { LayerPanel } from './LayerPanel';
 import { SheetPanel } from './SheetPanel'; // Import SheetPanel
 import { TabLayersIcon, GripVerticalIcon, SheetsIcon, ImportImageIcon } from './Icon';
