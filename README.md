@@ -23,6 +23,8 @@ Knitlab is an all-in-one design environment that unifies stitch charting, an ext
 
 * **Modern, Web-First Experience:** No installations, no outdated software. Knitlab runs entirely in your browser, offering a clean, responsive interface with both light and dark modes, allowing you to focus on your creativity.
 
+* **Explore — a public design gallery:** Browse community-published charts, fork any of them with one click to remix in your own editor, and share your own designs back. Submissions go through GitHub Issues with maintainer review. See [`docs/EXPLORE_BACKEND.md`](./docs/EXPLORE_BACKEND.md) for how it works and [`docs/MODERATION.md`](./docs/MODERATION.md) for the maintainer flow.
+
 ## For Developers and Designers
 
 Knitlab isn't just a tool for knitters — it's also a robust example of a modern, single-page application. Developers can explore its architecture and learn more from the developer documentation.

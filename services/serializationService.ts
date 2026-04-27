@@ -13,6 +13,9 @@ interface CompactApplicationState {
   p: CompactKeyDefinition[];    // keyPalette
   s: CompactChartState[];       // sheets
   a: string | null;             // activeSheetId
+  od?: string;                  // originalDesignId (remix metadata)
+  oa?: string;                  // originalAuthor
+  ot?: string;                  // originalTitle
 }
 
 interface CompactKeyDefinition {
@@ -49,7 +52,7 @@ interface CompactLayer {
  * Convert full ApplicationState to compact format
  */
 function toCompactFormat(state: ApplicationState): CompactApplicationState {
-  return {
+  const compact: CompactApplicationState = {
     v: CURRENT_VERSION,
     p: state.keyPalette.map(k => ({
       i: k.id,
@@ -83,6 +86,12 @@ function toCompactFormat(state: ApplicationState): CompactApplicationState {
     })),
     a: state.activeSheetId,
   };
+
+  if (state.originalDesignId) compact.od = state.originalDesignId;
+  if (state.originalAuthor) compact.oa = state.originalAuthor;
+  if (state.originalTitle) compact.ot = state.originalTitle;
+
+  return compact;
 }
 
 /**
@@ -130,6 +139,9 @@ function fromCompactFormat(compact: CompactApplicationState, keyPalette: KeyDefi
       activeLayerId: s.al,
     })),
     activeSheetId: compact.a,
+    ...(compact.od && { originalDesignId: compact.od }),
+    ...(compact.oa && { originalAuthor: compact.oa }),
+    ...(compact.ot && { originalTitle: compact.ot }),
   };
 }
 

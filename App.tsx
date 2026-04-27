@@ -11,9 +11,13 @@ import { FloatingToolPalette } from './components/FloatingToolPalette';
 import { TopRibbon, KeyUsageData } from './components/TopRibbon';
 import { MiniMap } from './components/MiniMap';
 import { DeveloperMenuModal } from './components/DeveloperMenuModal';
+import { PublishModal } from './components/PublishModal';
+import { ExploreGallery } from './components/ExploreGallery';
+import { Modal } from './components/Modal';
+import { Button } from './components/Button';
 import { ContextMenu } from './components/ContextMenu';
 import { ExportPreviewModal } from './components/ExportPreviewModal';
-import { Tool, Layer, ChartState, Point, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ApplicationState, ClipboardData, KeyDefinition, ChartDisplaySettings, ContextMenuItem, ProcessedImageData } from './types';
+import { Tool, Layer, ChartState, Point, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ApplicationState, ClipboardData, KeyDefinition, ChartDisplaySettings, ContextMenuItem, ProcessedImageData, ManifestEntry } from './types';
 import {
   DEFAULT_STITCH_SYMBOLS,
   INITIAL_APPLICATION_STATE,
@@ -58,6 +62,15 @@ const RESPONSIVE_BREAKPOINT = 768; // md breakpoint for lifting elements
 const MINIMAP_SIDE_MARGIN = 8; // Gap between sidebar and minimap, and minimap and screen edge (if applicable)
 const ICON_RIBBON_WIDTH_CONST = 56; // From TabbedSidebar
 
+// Map URL pathname → app view. Strips the Vite base ("/knitlab/") and
+// returns 'explore' only for an exact `/explore` (with optional trailing
+// slash) so unrelated paths fall back to the editor.
+function pathToView(pathname: string): 'editor' | 'explore' {
+  const base = import.meta.env.BASE_URL;
+  const rel = (pathname.startsWith(base) ? pathname.slice(base.length) : pathname).replace(/\/$/, '');
+  return rel === 'explore' ? 'explore' : 'editor';
+}
+
 export const App: React.FC = () => {
   const {
     currentState: applicationState,
@@ -87,6 +100,34 @@ export const App: React.FC = () => {
   const [isChartSettingsModalOpen, setIsChartSettingsModalOpen] = useState(false);
   const [isExportPreviewModalOpen, setIsExportPreviewModalOpen] = useState(false);
   const [isDeveloperMenuOpen, setIsDeveloperMenuOpen] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [appView, setAppView] = useState<'editor' | 'explore'>(
+    () => (typeof window !== 'undefined' && pathToView(window.location.pathname) === 'explore' ? 'explore' : 'editor')
+  );
+
+  // Sync appView <-> URL pathname so /knitlab/explore deep-links into the
+  // gallery and the browser back/forward buttons move between editor and
+  // explore. The SPA-on-Pages handshake (public/404.html + index.html
+  // decoder) makes /knitlab/explore work on GitHub Pages without a backend.
+  // Also strips any leftover hash on mount so old hash-based URLs from
+  // earlier iterations clean themselves up.
+  useEffect(() => {
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    const sync = () => setAppView(pathToView(window.location.pathname));
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
+  useEffect(() => {
+    const base = import.meta.env.BASE_URL;
+    const targetPath = appView === 'explore' ? `${base}explore` : base;
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState(null, '', targetPath + window.location.search);
+    }
+  }, [appView]);
+  const [pendingDesignEntry, setPendingDesignEntry] = useState<ManifestEntry | null>(null);
+  const [openDesignError, setOpenDesignError] = useState<string | null>(null);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -1187,6 +1228,36 @@ export const App: React.FC = () => {
     }
   };
 
+  const loadDesignFromExplore = async (entry: ManifestEntry) => {
+    setOpenDesignError(null);
+    try {
+      const url = `${import.meta.env.BASE_URL}${entry.payloadUrl}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      processLoadApplicationStateDirectly(text);
+      // Stamp remix metadata silently (no history entry — survives saves).
+      updateCurrentState(prev => ({
+        ...prev,
+        originalDesignId: entry.id,
+        originalAuthor: entry.author,
+        originalTitle: entry.title,
+      }));
+      setAppView('editor');
+    } catch (err) {
+      setOpenDesignError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const handleOpenDesignRequested = (entry: ManifestEntry) => {
+    if (canUndo) {
+      // User has unsaved edits — confirm before replacing.
+      setPendingDesignEntry(entry);
+    } else {
+      loadDesignFromExplore(entry);
+    }
+  };
+
   const handleCreateChartFromProcessedImage = (data: ProcessedImageData) => {
     let firstKeyIdForNewPalette: string | null = null;
 
@@ -1336,7 +1407,7 @@ export const App: React.FC = () => {
           event.target instanceof HTMLTextAreaElement ||
           event.target instanceof HTMLSelectElement) {
         // Don't interfere if user is typing in an input/modal
-        if (event.key === "Escape" && (isKeyEditorOpen || isImageImporterOpen || isImageProcessorModalOpen || isInstructionsGeneratorOpen || isChartSettingsModalOpen || isExportPreviewModalOpen || isDeveloperMenuOpen)) {
+        if (event.key === "Escape" && (isKeyEditorOpen || isImageImporterOpen || isImageProcessorModalOpen || isInstructionsGeneratorOpen || isChartSettingsModalOpen || isExportPreviewModalOpen || isDeveloperMenuOpen || isPublishModalOpen)) {
             // Allow Escape to close modals even if an input inside has focus
         } else {
             return;
@@ -1422,11 +1493,13 @@ export const App: React.FC = () => {
     clearAllInCurrentSelection, setActiveTool, setActiveKeyId, handlePastePreviewCancel, // Added setActiveKeyId
     isKeyEditorOpen, isImageImporterOpen, isImageProcessorModalOpen,
     isInstructionsGeneratorOpen, isChartSettingsModalOpen,
-    isExportPreviewModalOpen, isDeveloperMenuOpen
+    isExportPreviewModalOpen, isDeveloperMenuOpen, isPublishModalOpen
   ]);
 
   return (
     <div className="flex flex-col h-screen bg-neutral-100 dark:bg-neutral-800 transition-colors duration-300">
+      {appView === 'editor' ? (
+      <>
       <Header
         onUndo={undo}
         canUndo={canUndo}
@@ -1436,6 +1509,8 @@ export const App: React.FC = () => {
         toggleDarkMode={toggleDarkMode}
         onOpenSettings={() => setIsChartSettingsModalOpen(true)}
         onOpenExportModal={() => setIsExportPreviewModalOpen(true)}
+        onOpenPublish={() => setIsPublishModalOpen(true)}
+        onOpenExplore={() => setAppView('explore')}
         onImport={() => setIsImageImporterOpen(true)}
         onGenerateInstructions={() => setIsInstructionsGeneratorOpen(true)}
         currentZoom={currentZoom}
@@ -1598,6 +1673,13 @@ export const App: React.FC = () => {
         Crafted with ❤️ and code.
       </footer>
       {devContextMenu?.visible && <ContextMenu x={devContextMenu.x} y={devContextMenu.y} items={devContextMenu.items} onClose={() => setDevContextMenu(null)} />}
+      </>
+      ) : (
+      <ExploreGallery
+        onOpenInEditor={handleOpenDesignRequested}
+        onBackToEditor={() => setAppView('editor')}
+      />
+      )}
 
       {isKeyEditorOpen && (
         <KeyEditorModal
@@ -1663,6 +1745,62 @@ export const App: React.FC = () => {
             processLoadState={processLoadApplicationStateDirectly}
             showKeyUsageTally={showKeyUsageTallyGlobal}
             onToggleShowKeyUsageTally={toggleShowKeyUsageTallyGlobal}
+        />
+      )}
+      {pendingDesignEntry && (
+        <Modal
+          isOpen={true}
+          onClose={() => setPendingDesignEntry(null)}
+          title="Replace your current chart?"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-700 dark:text-neutral-300">
+              Opening <strong>{pendingDesignEntry.title}</strong> will replace your current chart.
+              You have unsaved changes — they will be lost unless you save first.
+            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Tip: cancel this dialog, click <strong>Download</strong> in the developer menu to save your work first, then come back.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setPendingDesignEntry(null)}>Cancel</Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const entry = pendingDesignEntry;
+                  setPendingDesignEntry(null);
+                  loadDesignFromExplore(entry);
+                }}
+              >
+                Discard & open
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {openDesignError && (
+        <Modal
+          isOpen={true}
+          onClose={() => setOpenDesignError(null)}
+          title="Could not open design"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-red-600 dark:text-red-400">{openDesignError}</p>
+            <div className="flex justify-end">
+              <Button variant="primary" onClick={() => setOpenDesignError(null)}>OK</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {isPublishModalOpen && (
+        <PublishModal
+            isOpen={isPublishModalOpen}
+            onClose={() => setIsPublishModalOpen(false)}
+            applicationState={applicationState}
+            allSymbols={allSymbols}
+            isDarkMode={isDarkMode}
+            hasEdits={canUndo}
         />
       )}
     </div>

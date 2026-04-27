@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Button } from './Button';
-import { SettingsIcon, SunIcon, MoonIcon, UndoIcon, RedoIcon, TextToInstructionIcon, ExportJpgIcon, ZoomInIcon, ZoomOutIcon } from './Icon';
+import { SettingsIcon, SunIcon, MoonIcon, UndoIcon, RedoIcon, TextToInstructionIcon, ExportJpgIcon, ZoomInIcon, ZoomOutIcon, ShareIcon, GridIcon } from './Icon';
 import { ZOOM_LEVELS_BASE } from '../constants';
 
 interface HeaderProps {
@@ -13,6 +13,8 @@ interface HeaderProps {
   toggleDarkMode: () => void;
   onOpenSettings: () => void;
   onOpenExportModal: () => void;
+  onOpenPublish: () => void;
+  onOpenExplore: () => void;
   onImport: () => void;
   onGenerateInstructions: () => void;
   currentZoom: number;
@@ -24,7 +26,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onUndo, canUndo, onRedo, canRedo,
   isDarkMode, toggleDarkMode,
-  onOpenSettings, onOpenExportModal, onImport, onGenerateInstructions,
+  onOpenSettings, onOpenExportModal, onOpenPublish, onOpenExplore, onImport, onGenerateInstructions,
   currentZoom, onZoomChange,
   chartRows, chartCols,
 }) => {
@@ -67,6 +69,8 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-6 border-l border-neutral-300 dark:border-neutral-600 mx-0.5 sm:mx-1"></div>
         <Button variant="ghost" size="sm" onClick={onGenerateInstructions} title="Generate Written Instructions"><TextToInstructionIcon /></Button>
         <Button variant="ghost" size="sm" onClick={onOpenExportModal} title="Export to JPG"><ExportJpgIcon /></Button>
+        <Button variant="ghost" size="sm" onClick={onOpenPublish} title="Publish to Explore"><ShareIcon /></Button>
+        <Button variant="ghost" size="sm" onClick={onOpenExplore} title="Browse Explore gallery"><GridIcon /></Button>
       </div>
 
       <div className="flex items-center sm:space-x-0.5 md:space-x-1">

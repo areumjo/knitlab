@@ -58,16 +58,21 @@ export async function generateChartJpeg(
   allSymbols: StitchSymbolDef[],
   isDarkMode: boolean,
   exportZoom: number,
-  includeCopyright: boolean
+  includeCopyright: boolean,
+  includeGutters: boolean = true,
+  outputFormat: 'jpeg' | 'png' = 'jpeg'
 ): Promise<string | null> {
   try {
     const scaledCellSize = CELL_SIZE * exportZoom;
     const { rows, cols, displaySettings, orientation } = chartState;
 
-    const gutterLeft = (displaySettings.rowCountVisibility === 'left' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-left') ? GUTTER_SIZE : 0;
-    const gutterTop = (displaySettings.colCountVisibility === 'top' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
-    const gutterRight = (displaySettings.rowCountVisibility === 'right' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-right') ? GUTTER_SIZE : 0;
-    const gutterBottom = (displaySettings.colCountVisibility === 'bottom' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
+    let gutterLeft = (displaySettings.rowCountVisibility === 'left' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-left') ? GUTTER_SIZE : 0;
+    let gutterTop = (displaySettings.colCountVisibility === 'top' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
+    let gutterRight = (displaySettings.rowCountVisibility === 'right' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-right') ? GUTTER_SIZE : 0;
+    let gutterBottom = (displaySettings.colCountVisibility === 'bottom' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
+    if (!includeGutters) {
+      gutterLeft = gutterRight = gutterTop = gutterBottom = 0;
+    }
     
     const gridContentWidth = cols * scaledCellSize;
     const gridContentHeight = rows * scaledCellSize;
@@ -244,9 +249,11 @@ export async function generateChartJpeg(
         ctx.fillText(COPYRIGHT_TEXT_LINE1, copyrightX, copyrightY);
     }
 
-    return canvas.toDataURL('image/jpeg', 0.9); // 0.9 quality
+    return outputFormat === 'png'
+      ? canvas.toDataURL('image/png')
+      : canvas.toDataURL('image/jpeg', 0.9);
   } catch (error) {
-    console.error("Error generating chart JPEG:", error);
+    console.error("Error generating chart export:", error);
     return null;
   }
 }

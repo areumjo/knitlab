@@ -62,6 +62,11 @@ export const MAX_KEY_WIDTH = 8;
 export const MAX_KEY_HEIGHT = 8;
 export const ABBREVIATION_SKIP_SENTINEL = "__ABBR_SKIP__";
 
+// Explore gallery: repo where designs are submitted as GitHub Issues.
+// See docs/EXPLORE_BACKEND.md for the full backend design.
+export const EXPLORE_REPO_OWNER = 'areumjo';
+export const EXPLORE_REPO_NAME = 'knitlab';
+
 export const generateNewKeyId = () => `key_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 export const generateNewSheetId = () => `sheet_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
