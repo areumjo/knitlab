@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Knitlab</title>
+  <script type="text/javascript">
+    // Single Page Apps for GitHub Pages
+    // MIT Licensed — https://github.com/rafgraph/spa-github-pages
+    //
+    // This 404 page captures the requested path and redirects to index.html
+    // with the path encoded as a query string. index.html has a matching
+    // decoder script that restores the real URL via history.replaceState
+    // before the React app loads.
+    //
+    // pathSegmentsToKeep = 1 because the site is served at /knitlab/.
+    var pathSegmentsToKeep = 1;
+
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
+  </script>
+</head>
+<body>
+</body>
+</html>

@@ -98,9 +98,24 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="/knitlab/assets/index-CyWTwVM9.js"></script>
+  <script type="module" crossorigin src="/knitlab/assets/index-DMQGAFNX.js"></script>
 </head>
 <body class="bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 antialiased">
   <div id="root"></div>
+  <script type="text/javascript">
+    // SPA-on-Pages decoder — pairs with public/404.html. If we arrived here
+    // via the 404 redirect (URL is /knitlab/?/explore), restore the real path
+    // (/knitlab/explore) before the app boots. See 404.html for context.
+    (function(l) {
+      if (l.search[1] === '/') {
+        var decoded = l.search.slice(1).split('&').map(function(s) {
+          return s.replace(/~and~/g, '&');
+        }).join('?');
+        window.history.replaceState(null, '',
+          l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      }
+    }(window.location));
+  </script>
 </body>
 </html>
