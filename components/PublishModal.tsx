@@ -226,7 +226,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
               type="text"
               value={author}
               onChange={e => setAuthor(e.target.value)}
-              placeholder="(your GitHub username)"
+              placeholder="e.g. Jane Knitter, or @yourhandle"
               className="mt-1 w-full px-2 py-1 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-700 text-sm"
             />
             <p className="text-xs text-neutral-500 mt-0.5">
@@ -245,7 +245,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={3}
-          placeholder="What is this design? Any notes for someone wanting to use it?"
+          placeholder="e.g. A simple lace pattern with three repeats…"
           className="mt-1 w-full px-2 py-1 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-700 text-sm resize-none"
         />
         <p className="text-xs text-neutral-500 mt-0.5">
@@ -269,9 +269,8 @@ export const PublishModal: React.FC<PublishModalProps> = ({
       </div>
 
       <div className="text-xs text-neutral-600 dark:text-neutral-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-3">
-        Your design will be <strong>publicly visible on GitHub</strong> and in the
-        Explore gallery. Anyone can view, download, and remix it. Your GitHub
-        username will be visible on the submission issue.
+        Your design will be <strong>publicly visible</strong> in Explore and on GitHub.
+        Anyone can view, download, and remix it.
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
@@ -285,7 +284,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
         <div className="flex gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" disabled={!canContinue} onClick={() => setView('confirm')}>
-            Continue to Submit
+            Continue
           </Button>
         </div>
       </div>
@@ -295,14 +294,14 @@ export const PublishModal: React.FC<PublishModalProps> = ({
   const renderConfirm = () => (
     <div className="space-y-4">
       <p className="text-sm text-neutral-700 dark:text-neutral-300">
-        Your submission is ready. Click the button below — it copies the submission
-        to your clipboard and opens GitHub in a new tab.
+        Your submission is ready. The button below copies it to your clipboard and
+        opens GitHub in a new tab.
       </p>
 
       <div className="text-sm text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-700 rounded p-3">
         <p className="font-medium mb-2">Then on GitHub:</p>
         <ol className="list-decimal list-inside space-y-1 text-xs">
-          <li>Click into the empty <strong>Add a description</strong> body field</li>
+          <li>Click the <strong>Add a description</strong> field</li>
           <li>Paste with <kbd className="px-1 py-0.5 bg-neutral-200 dark:bg-neutral-600 rounded text-xs">Cmd/Ctrl+V</kbd></li>
           <li>Click <strong>Submit new issue</strong></li>
         </ol>
