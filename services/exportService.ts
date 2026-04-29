@@ -14,7 +14,7 @@ import {
   KEY_ID_EMPTY,
 } from '../constants';
 
-const COPYRIGHT_TEXT_LINE1 = "© 2025 Areum Knits. All rights reserved.";
+const COPYRIGHT_TEXT_LINE1 = "© 2026 Areum Knits. All rights reserved.";
 const COPYRIGHT_TEXT_LINE2 = "Crafted with ❤️ and code.";
 const COPYRIGHT_FONT_SIZE = 10; // pixels
 const COPYRIGHT_LINE_HEIGHT = 12; // pixels

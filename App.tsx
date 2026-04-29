@@ -1677,7 +1677,7 @@ export const App: React.FC = () => {
         style={{ bottom: dynamicBottomStyle.footer }}
         aria-label="Application Footer"
       >
-        © 2025 Areum Knits. All rights reserved.<br/>
+        © 2026 Areum Knits. All rights reserved.<br/>
         Crafted with ❤️ and code.
       </footer>
       {devContextMenu?.visible && <ContextMenu x={devContextMenu.x} y={devContextMenu.y} items={devContextMenu.items} onClose={() => setDevContextMenu(null)} />}
