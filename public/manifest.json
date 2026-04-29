@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "updated": "2026-04-29T22:30:52.830Z",
+  "designs": [
+    {
+      "id": "1",
+      "title": "Claude Logo",
+      "author": "Areum Jo",
+      "submitter": "areumjo",
+      "description": "Claude logo chart.",
+      "tags": [
+        "logo",
+        "clawd"
+      ],
+      "date": "2026-04-29",
+      "thumbnailUrl": "thumbnails/1.png",
+      "payloadUrl": "designs/1.knitlab",
+      "issueUrl": "https://github.com/areumjo/knitlab"
+    },
+    {
+      "id": "2",
+      "title": "Coffee",
+      "author": "Areum Jo",
+      "submitter": "areumjo",
+      "description": "Coffee cup chart.",
+      "tags": [
+        "coffee",
+        "clawd"
+      ],
+      "date": "2026-04-29",
+      "thumbnailUrl": "thumbnails/2.png",
+      "payloadUrl": "designs/2.knitlab",
+      "issueUrl": "https://github.com/areumjo/knitlab"
+    },
+    {
+      "id": "3",
+      "title": "Magnifier",
+      "author": "Areum Jo",
+      "submitter": "areumjo",
+      "description": "Magnifying glass chart.",
+      "tags": [
+        "magnifier",
+        "clawd"
+      ],
+      "date": "2026-04-29",
+      "thumbnailUrl": "thumbnails/3.png",
+      "payloadUrl": "designs/3.knitlab",
+      "issueUrl": "https://github.com/areumjo/knitlab"
+    },
+    {
+      "id": "4",
+      "title": "Skateboard",
+      "author": "Areum Jo",
+      "submitter": "areumjo",
+      "description": "Skateboard chart.",
+      "tags": [
+        "skateboard",
+        "clawd"
+      ],
+      "date": "2026-04-29",
+      "thumbnailUrl": "thumbnails/4.png",
+      "payloadUrl": "designs/4.knitlab",
+      "issueUrl": "https://github.com/areumjo/knitlab"
+    }
+  ]
+}

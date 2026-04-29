@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Button } from './Button';
-import { SettingsIcon, SunIcon, MoonIcon, UndoIcon, RedoIcon, TextToInstructionIcon, ExportJpgIcon, ZoomInIcon, ZoomOutIcon } from './Icon';
+import { SettingsIcon, SunIcon, MoonIcon, UndoIcon, RedoIcon, TextToInstructionIcon, ExportJpgIcon, ZoomInIcon, ZoomOutIcon, ShareIcon, GridIcon, HelpCircleIcon } from './Icon';
 import { ZOOM_LEVELS_BASE } from '../constants';
 
 interface HeaderProps {
@@ -13,6 +13,9 @@ interface HeaderProps {
   toggleDarkMode: () => void;
   onOpenSettings: () => void;
   onOpenExportModal: () => void;
+  onOpenPublish: () => void;
+  onOpenExplore: () => void;
+  onOpenHelp: () => void;
   onImport: () => void;
   onGenerateInstructions: () => void;
   currentZoom: number;
@@ -24,7 +27,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onUndo, canUndo, onRedo, canRedo,
   isDarkMode, toggleDarkMode,
-  onOpenSettings, onOpenExportModal, onImport, onGenerateInstructions,
+  onOpenSettings, onOpenExportModal, onOpenPublish, onOpenExplore, onOpenHelp, onGenerateInstructions,
   currentZoom, onZoomChange,
   chartRows, chartCols,
 }) => {
@@ -67,6 +70,9 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-6 border-l border-neutral-300 dark:border-neutral-600 mx-0.5 sm:mx-1"></div>
         <Button variant="ghost" size="sm" onClick={onGenerateInstructions} title="Generate Written Instructions"><TextToInstructionIcon /></Button>
         <Button variant="ghost" size="sm" onClick={onOpenExportModal} title="Export to JPG"><ExportJpgIcon /></Button>
+        <div className="h-6 border-l border-neutral-300 dark:border-neutral-600 mx-0.5 sm:mx-1"></div>
+        <Button variant="ghost" size="sm" onClick={onOpenPublish} title="Publish to Explore"><ShareIcon /></Button>
+        <Button variant="ghost" size="sm" onClick={onOpenExplore} title="Browse Explore gallery"><GridIcon /></Button>
       </div>
 
       <div className="flex items-center sm:space-x-0.5 md:space-x-1">
@@ -77,6 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
         <Button variant="ghost" size="sm" onClick={toggleDarkMode} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
           {isDarkMode ? <SunIcon /> : <MoonIcon />}
         </Button>
+        <Button variant="ghost" size="sm" onClick={onOpenHelp} title="Help"><HelpCircleIcon /></Button>
         <Button variant="ghost" size="sm" onClick={onOpenSettings} title="Sheet Settings"><SettingsIcon /></Button>
       </div>
     </header>

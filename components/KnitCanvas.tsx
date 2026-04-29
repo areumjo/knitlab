@@ -156,26 +156,33 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     ctx.fillStyle = bgColor;
     ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
 
+    // Grid lines first, all four sides — the original render painted only
+    // bottom/right and relied on neighbours for top/left, but that left the
+    // top/left grid lines from the original full-canvas render still on top
+    // of any custom-key edge strokes drawn next. Drawing all four here under
+    // the symbol means the stroke can cleanly overpaint the grid line.
+    ctx.strokeStyle = fixedGridLineColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const leftBorderX = Math.round(cellX) + 0.5;
+    const rightBorderX = Math.round(cellX + scaledCellSize) + 0.5;
+    const topBorderY = Math.round(cellY) + 0.5;
+    const bottomBorderY = Math.round(cellY + scaledCellSize) + 0.5;
+    ctx.moveTo(leftBorderX - 0.5, topBorderY);
+    ctx.lineTo(rightBorderX, topBorderY);
+    ctx.moveTo(rightBorderX, topBorderY - 0.5);
+    ctx.lineTo(rightBorderX, bottomBorderY);
+    ctx.lineTo(leftBorderX - 0.5, bottomBorderY);
+    ctx.moveTo(leftBorderX, topBorderY - 0.5);
+    ctx.lineTo(leftBorderX, bottomBorderY);
+    ctx.stroke();
+
     if (keyDefToApply && keyDefToApply.id !== KEY_ID_EMPTY) {
       await drawStitchSymbolOnCanvas(
         ctx, keyDefToApply, allSymbols, cellX, cellY, scaledCellSize, isDarkMode,
         0, 0
       );
     }
-
-    ctx.strokeStyle = fixedGridLineColor;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    // Draw bottom and right border for the individual cell, snapped for crispness
-    const rightBorderX = Math.round(cellX + scaledCellSize) + 0.5;
-    const bottomBorderY = Math.round(cellY + scaledCellSize) + 0.5;
-    const roundedCellX = Math.round(cellX) + 0.5;
-    const roundedCellY = Math.round(cellY) + 0.5;
-
-    ctx.moveTo(rightBorderX, roundedCellY - 0.5); // Start from top-right for vertical line
-    ctx.lineTo(rightBorderX, bottomBorderY);
-    ctx.lineTo(roundedCellX - 0.5, bottomBorderY); // Continue to bottom-left for horizontal line
-    ctx.stroke();
 
     ctx.restore();
 
@@ -197,7 +204,6 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     ctx.save();
     ctx.translate(viewOffset.x, viewOffset.y);
 
-    const gutterBgColor = isDarkMode ? '#374151' : '#E5E7EB';
     if(gutterLeft > 0) ctx.fillRect(0, gutterTop, gutterLeft, actualGridContentHeight);
     if(gutterTop > 0) ctx.fillRect(gutterLeft, 0, actualGridContentWidth, gutterTop);
     if(gutterRight > 0) ctx.fillRect(gutterLeft + actualGridContentWidth, gutterTop, gutterRight, actualGridContentHeight);
@@ -208,7 +214,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     const visibleStartRow = Math.max(0, Math.floor((-viewOffset.y - gutterTop) / scaledCellSize));
     const visibleEndRow = Math.min(rows, Math.ceil((-viewOffset.y - gutterTop + canvasSize.height) / scaledCellSize));
 
-    const symbolDrawingPromises: Promise<void>[] = [];
+    // Pass 1: cell backgrounds.
     for (let r = visibleStartRow; r < visibleEndRow; r++) {
       for (let c = visibleStartCol; c < visibleEndCol; c++) {
         const cellX = gutterLeft + c * scaledCellSize;
@@ -222,6 +228,43 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
 
         ctx.fillStyle = bgColor;
         ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
+      }
+    }
+
+    // Pass 2: grid lines (drawn before symbols so custom-key edge strokes can
+    // overpaint them — otherwise the gray top/left grid lines clobber the colored
+    // strokes that share the same pixel row/column).
+    ctx.strokeStyle = fixedGridLineColor;
+    ctx.lineWidth = 1;
+
+    for (let r = visibleStartRow; r <= visibleEndRow; r++) {
+        ctx.beginPath();
+        const yPos = Math.round(gutterTop + r * scaledCellSize) + 0.5;
+        const lineStartX = Math.round(gutterLeft + visibleStartCol * scaledCellSize) + 0.5;
+        const lineEndX = Math.round(gutterLeft + visibleEndCol * scaledCellSize) + 0.5;
+        ctx.moveTo(lineStartX - 0.5, yPos);
+        ctx.lineTo(lineEndX - 0.5, yPos);
+        ctx.stroke();
+    }
+    for (let c = visibleStartCol; c <= visibleEndCol; c++) {
+        ctx.beginPath();
+        const xPos = Math.round(gutterLeft + c * scaledCellSize) + 0.5;
+        const lineStartY = Math.round(gutterTop + visibleStartRow * scaledCellSize) + 0.5;
+        const lineEndY = Math.round(gutterTop + visibleEndRow * scaledCellSize) + 0.5;
+        ctx.moveTo(xPos, lineStartY - 0.5);
+        ctx.lineTo(xPos, lineEndY - 0.5);
+        ctx.stroke();
+    }
+
+    // Pass 3: symbols (custom-key strokes, stitch glyphs, etc.) drawn last so
+    // they sit on top of grid lines.
+    const symbolDrawingPromises: Promise<void>[] = [];
+    for (let r = visibleStartRow; r < visibleEndRow; r++) {
+      for (let c = visibleStartCol; c < visibleEndCol; c++) {
+        const cellX = gutterLeft + c * scaledCellSize;
+        const cellY = gutterTop + r * scaledCellSize;
+        const cellData = activeLayer.grid[r]?.[c];
+        const keyDef = cellData?.keyId ? (keyPalette.find(k => k.id === cellData.keyId) || noStitchKeyDef) : noStitchKeyDef;
 
         if (keyDef && keyDef.id !== KEY_ID_EMPTY) {
            symbolDrawingPromises.push(drawStitchSymbolOnCanvas(
@@ -232,30 +275,6 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
       }
     }
     await Promise.all(symbolDrawingPromises);
-
-    ctx.strokeStyle = fixedGridLineColor;
-    ctx.lineWidth = 1;
-
-    // Draw all horizontal grid lines
-    for (let r = visibleStartRow; r <= visibleEndRow; r++) {
-        ctx.beginPath();
-        const yPos = Math.round(gutterTop + r * scaledCellSize) + 0.5;
-        const lineStartX = Math.round(gutterLeft + visibleStartCol * scaledCellSize) + 0.5;
-        const lineEndX = Math.round(gutterLeft + visibleEndCol * scaledCellSize) + 0.5;
-        ctx.moveTo(lineStartX - 0.5, yPos);
-        ctx.lineTo(lineEndX - 0.5, yPos);
-        ctx.stroke();
-    }
-    // Draw all vertical grid lines
-    for (let c = visibleStartCol; c <= visibleEndCol; c++) {
-        ctx.beginPath();
-        const xPos = Math.round(gutterLeft + c * scaledCellSize) + 0.5;
-        const lineStartY = Math.round(gutterTop + visibleStartRow * scaledCellSize) + 0.5;
-        const lineEndY = Math.round(gutterTop + visibleEndRow * scaledCellSize) + 0.5;
-        ctx.moveTo(xPos, lineStartY - 0.5);
-        ctx.lineTo(xPos, lineEndY - 0.5);
-        ctx.stroke();
-    }
 
     ctx.fillStyle = isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT;
     const gutterFontSize = Math.max(8, Math.min(14, scaledCellSize * 0.4 * Math.max(0.5, 1/zoomLevel) ));

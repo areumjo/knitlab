@@ -1,4 +1,4 @@
-import { ChartState, KeyDefinition, StitchSymbolDef, Line, KeyCellContent } from '../types';
+import { ChartState, KeyDefinition, StitchSymbolDef } from '../types';
 import {
   CELL_SIZE,
   GUTTER_SIZE,
@@ -14,7 +14,7 @@ import {
   KEY_ID_EMPTY,
 } from '../constants';
 
-const COPYRIGHT_TEXT_LINE1 = "© 2025 Areum Knits. All rights reserved.";
+const COPYRIGHT_TEXT_LINE1 = "© 2026 Areum Knits. All rights reserved.";
 const COPYRIGHT_TEXT_LINE2 = "Crafted with ❤️ and code.";
 const COPYRIGHT_FONT_SIZE = 10; // pixels
 const COPYRIGHT_LINE_HEIGHT = 12; // pixels
@@ -31,7 +31,7 @@ async function drawSymbolSvgOnCanvas(
     // Ensure SVG has a viewBox and fill/stroke are set to currentColor or a specific color that can be overridden
     const fullSvgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 24 24" style="color: ${symbolColor};">${svgContent}</svg>`;
     
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
         const img = new Image();
         img.onload = () => {
             ctx.drawImage(img, x, y, width, height);
@@ -58,16 +58,21 @@ export async function generateChartJpeg(
   allSymbols: StitchSymbolDef[],
   isDarkMode: boolean,
   exportZoom: number,
-  includeCopyright: boolean
+  includeCopyright: boolean,
+  includeGutters: boolean = true,
+  outputFormat: 'jpeg' | 'png' = 'jpeg'
 ): Promise<string | null> {
   try {
     const scaledCellSize = CELL_SIZE * exportZoom;
     const { rows, cols, displaySettings, orientation } = chartState;
 
-    const gutterLeft = (displaySettings.rowCountVisibility === 'left' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-left') ? GUTTER_SIZE : 0;
-    const gutterTop = (displaySettings.colCountVisibility === 'top' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
-    const gutterRight = (displaySettings.rowCountVisibility === 'right' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-right') ? GUTTER_SIZE : 0;
-    const gutterBottom = (displaySettings.colCountVisibility === 'bottom' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
+    let gutterLeft = (displaySettings.rowCountVisibility === 'left' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-left') ? GUTTER_SIZE : 0;
+    let gutterTop = (displaySettings.colCountVisibility === 'top' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
+    let gutterRight = (displaySettings.rowCountVisibility === 'right' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-right') ? GUTTER_SIZE : 0;
+    let gutterBottom = (displaySettings.colCountVisibility === 'bottom' || displaySettings.colCountVisibility === 'both') ? GUTTER_SIZE : 0;
+    if (!includeGutters) {
+      gutterLeft = gutterRight = gutterTop = gutterBottom = 0;
+    }
     
     const gridContentWidth = cols * scaledCellSize;
     const gridContentHeight = rows * scaledCellSize;
@@ -126,14 +131,10 @@ export async function generateChartJpeg(
           if (keyDef.lines && keyDef.lines.length > 0) {
             ctx.strokeStyle = symbolColor;
             ctx.lineWidth = Math.max(1, scaledCellSize * 0.08);
-            ctx.lineCap = 'round';
-            const linesToDraw = (keyDef.width > 1 || keyDef.height > 1)
-              ? keyDef.lines.filter(line => { // Basic clipping for lines within the current cell part
-                  const inCellOffsetX = keyPartColOffset * scaledCellSize;
-                  const inCellOffsetY = keyPartRowOffset * scaledCellSize;
-                  return true; // Simplified: for now draw all lines of an MxN symbol, let svg viewBox handle it
-                })
-              : keyDef.lines;
+            ctx.lineCap = 'butt';
+            // For multi-cell keys we currently draw all lines and rely on the SVG
+            // viewBox to clip; per-cell-part clipping isn't implemented.
+            const linesToDraw = keyDef.lines;
 
             linesToDraw.forEach(line => {
                 ctx.beginPath();
@@ -244,9 +245,11 @@ export async function generateChartJpeg(
         ctx.fillText(COPYRIGHT_TEXT_LINE1, copyrightX, copyrightY);
     }
 
-    return canvas.toDataURL('image/jpeg', 0.9); // 0.9 quality
+    return outputFormat === 'png'
+      ? canvas.toDataURL('image/png')
+      : canvas.toDataURL('image/jpeg', 0.9);
   } catch (error) {
-    console.error("Error generating chart JPEG:", error);
+    console.error("Error generating chart export:", error);
     return null;
   }
 }

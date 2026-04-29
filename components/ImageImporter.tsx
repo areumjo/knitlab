@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { UploadIcon } from './Icon';
@@ -10,7 +10,7 @@ interface ImageImporterProps {
   onChartGenerated: (chartData: any) => void; // Argument type depends on Gemini output structure
 }
 
-export const ImageImporter: React.FC<ImageImporterProps> = ({ isOpen, onClose, onChartGenerated }) => {
+export const ImageImporter: React.FC<ImageImporterProps> = ({ isOpen, onClose }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [numColors, setNumColors] = useState(3);

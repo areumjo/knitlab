@@ -61,6 +61,10 @@ export const MoonIcon = (props: SpecificIconComponentProps) => <Icon path="M21 1
 
 export const UploadIcon = (props: SpecificIconComponentProps) => <Icon path="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8L12 3L7 8M12 3V15" {...props} />;
 export const DownloadIcon = (props: SpecificIconComponentProps) => <Icon path="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10L12 15L17 10M12 15V3" {...props} />;
+export const ShareIcon = (props: SpecificIconComponentProps) => <Icon path="M21 5A3 3 0 1 0 15 5A3 3 0 1 0 21 5M9 12A3 3 0 1 0 3 12A3 3 0 1 0 9 12M21 19A3 3 0 1 0 15 19A3 3 0 1 0 21 19M8.59 13.51L15.42 17.49M15.41 6.51L8.59 10.49" {...props} />;
+export const GridIcon = (props: SpecificIconComponentProps) => <Icon path="M3 3h7v7h-7zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7h-7z" {...props} />;
+export const ArrowLeftIcon = (props: SpecificIconComponentProps) => <Icon path="M19 12H5M12 19L5 12L12 5" {...props} />;
+export const ExternalLinkIcon = (props: SpecificIconComponentProps) => <Icon path="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" {...props} />;
 
 export const TextToInstructionIcon = (props: SpecificIconComponentProps) => <Icon path="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z M14 3v5h5M16 13H8M16 17H8M10 9H8" {...props} />;
 export const ExportJpgIcon = (props: SpecificIconComponentProps) => <Icon path="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8" {...props} />;
@@ -95,10 +99,10 @@ export const CopyIcon = (props: SpecificIconComponentProps) => <Icon path="M9 7h
 export const CutIcon = (props: SpecificIconComponentProps) => <Icon path="M6 3a3 3 0 100 6 3 3 0 000-6zM6 15a3 3 0 100 6 3 3 0 000-6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" {...props} />;
 export const PasteIcon = (props: SpecificIconComponentProps) => <Icon path="M16 4h2a2 2 0 011 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M9 2h6a1 1 0 011 1v2a1 1 0 01-1 1H9a1 1 0 01-1-1V3a1 1 0 011-1z" {...props} />;
 
-export const TextWithUnderlineIcon = (props: SpecificIconComponentProps) => (
+export const TextWithUnderlineIcon = (_props: SpecificIconComponentProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M80 0v-160h800V0H80Zm140-280 210-560h100l210 560h-96l-50-144H368l-52 144h-96Zm176-224h168l-82-232h-4l-82 232Z"/></svg>
 );
-export const BrushWithUnderlineIcon = (props: SpecificIconComponentProps) => (
+export const BrushWithUnderlineIcon = (_props: SpecificIconComponentProps) => (
   <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="m247-904 57-56 343 343q23 23 23 57t-23 57L457-313q-23 23-57 23t-57-23L153-503q-23-23-23-57t23-57l190-191-96-96Zm153 153L209-560h382L400-751Zm360 471q-33 0-56.5-23.5T680-360q0-21 12.5-45t27.5-45q9-12 19-25t21-25q11 12 21 25t19 25q15 21 27.5 45t12.5 45q0 33-23.5 56.5T760-280ZM80 0v-160h800V0H80Z"/></svg>
 );
 export const EmptySquareWithBorderIcon = (props: SpecificIconComponentProps) => (
@@ -110,4 +114,8 @@ export const ToggleOffIcon = (props: SpecificIconComponentProps) => <EmptySquare
 
 export const InformationCircleIcon = (props: SpecificIconComponentProps) => (
   <Icon path="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor" {...props} />
+);
+
+export const HelpCircleIcon = (props: SpecificIconComponentProps) => (
+  <Icon path="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" {...props} />
 );

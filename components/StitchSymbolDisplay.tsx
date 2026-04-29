@@ -96,7 +96,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
                 y2={line.end.y * cellSize}
                 stroke={effectiveSymbolColor}
                 strokeWidth={Math.max(1, cellSize * 0.08)}
-                strokeLinecap="round"
+                strokeLinecap="butt"
               />
             ))}
           </svg>
@@ -145,7 +145,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
                 y2={line.end.y * cellSize}
                 stroke={effectiveSymbolColor}
                 strokeWidth={Math.max(1, cellSize * 0.08)}
-                strokeLinecap="round"
+                strokeLinecap="butt"
               />
             ))}
           </svg>
@@ -195,7 +195,7 @@ export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
                 y2={line.end.y * unitSize}
                 stroke={effectiveSymbolColor}
                 strokeWidth={Math.max(1, unitSize * 0.08)}
-                strokeLinecap="round"
+                strokeLinecap="butt"
               />
             ))}
           </svg>

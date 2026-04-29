@@ -46,6 +46,9 @@ const GUTTER_CONTROL_THICKNESS = 16;
 const SNAP_POINT_VISUAL_RADIUS = 4;
 const SNAP_POINT_HOVER_OPACITY = 0.8;
 const SNAP_POINT_DEFAULT_OPACITY = 0.4;
+// Extra room outside the cell grid so strokes near the edges aren't clipped by
+// the SVG bounds. Half-stroke is ~1px; a few extra px is plenty.
+const CANVAS_PADDING = 4;
 
 interface PopoverProps {
   anchorEl: HTMLElement | null;
@@ -129,6 +132,38 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
   const [editedCells, setEditedCells] = useState<(KeyCellContent | null)[][]>(createInitialCells(1,1));
   const [editedLines, setEditedLines] = useState<Line[]>([]);
 
+  // Local undo/redo for line drawing. Each entry is a snapshot of editedLines.
+  // Reset when the modal opens or when entering line mode.
+  const [linesHistory, setLinesHistory] = useState<{ entries: Line[][]; index: number }>({ entries: [[]], index: 0 });
+  const canUndoLines = linesHistory.index > 0;
+  const canRedoLines = linesHistory.index < linesHistory.entries.length - 1;
+
+  const recordLines = useCallback((newLines: Line[]) => {
+    setEditedLines(newLines);
+    setLinesHistory(prev => {
+      const truncated = prev.entries.slice(0, prev.index + 1);
+      return { entries: [...truncated, newLines], index: truncated.length };
+    });
+  }, []);
+
+  const undoLines = useCallback(() => {
+    setLinesHistory(prev => {
+      if (prev.index <= 0) return prev;
+      const newIndex = prev.index - 1;
+      setEditedLines(prev.entries[newIndex]);
+      return { ...prev, index: newIndex };
+    });
+  }, []);
+
+  const redoLines = useCallback(() => {
+    setLinesHistory(prev => {
+      if (prev.index >= prev.entries.length - 1) return prev;
+      const newIndex = prev.index + 1;
+      setEditedLines(prev.entries[newIndex]);
+      return { ...prev, index: newIndex };
+    });
+  }, []);
+
   const [activeEditorMode, setActiveEditorMode] = useState<'cell' | 'line' | null>(null);
   const [activeSymbolContent, setActiveSymbolContent] = useState<{ type: 'svg' | 'text', value: string } | null>(null);
   const [currentLinePreview, setCurrentLinePreview] = useState<Line | null>(null);
@@ -174,7 +209,9 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
       setEditedHeight(existingKey.height);
       setEditedBackgroundColor(existingKey.backgroundColor);
       setEditedSymbolColor(existingKey.symbolColor);
-      setEditedLines(existingKey.lines || []);
+      const initialLines = existingKey.lines || [];
+      setEditedLines(initialLines);
+      setLinesHistory({ entries: [initialLines], index: 0 });
 
       const isIncluded = existingKey.id === KEY_ID_EMPTY ? false : existingKey.abbreviation !== ABBREVIATION_SKIP_SENTINEL;
       setIncludeInPatternInstructions(isIncluded);
@@ -215,6 +252,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
       setActiveEditorMode('line');
       setEditedCells(createInitialCells(initialW, initialH));
       setEditedLines([]);
+      setLinesHistory({ entries: [[]], index: 0 });
     }
   }, [existingKey, isDarkMode, keyPalette, isOpen, getDefaultCircledAbbreviation]);
 
@@ -224,6 +262,24 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
       resetToDefaultsOrExisting();
     }
   }, [isOpen, resetToDefaultsOrExisting]);
+
+  useEffect(() => {
+    if (!isOpen || activeEditorMode !== 'line') return;
+    const handleKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      const isUndo = e.key === 'z' && !e.shiftKey;
+      const isRedo = (e.key === 'z' && e.shiftKey) || e.key === 'y';
+      if (!isUndo && !isRedo) return;
+      // Stop the editor's global undo/redo from also firing.
+      e.preventDefault();
+      e.stopPropagation();
+      if (isUndo) undoLines();
+      else redoLines();
+    };
+    document.addEventListener('keydown', handleKey, true);
+    return () => document.removeEventListener('keydown', handleKey, true);
+  }, [isOpen, activeEditorMode, undoLines, redoLines]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -289,6 +345,8 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
         setEditedCells(createInitialCells(editedHeight, editedWidth));
         setActiveSymbolContent(null);
         setShowSymbolSelector(false);
+        // Fresh undo/redo session whenever the user re-enters line mode.
+        setLinesHistory({ entries: [editedLines], index: 0 });
     } else {
         setEditedLines([]);
         setCurrentLinePreview(null);
@@ -311,9 +369,11 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
   const getMousePositionInSVG = (event: React.MouseEvent): Point | null => {
     if (!svgGridRef.current) return null;
     const svgRect = svgGridRef.current.getBoundingClientRect();
+    // SVG is shifted by -CANVAS_PADDING relative to the cell grid, so subtract
+    // it back out to get cell-space coordinates (0..editedWidth, 0..editedHeight).
     return {
-      x: (event.clientX - svgRect.left) / PREVIEW_CELL_SIZE,
-      y: (event.clientY - svgRect.top) / PREVIEW_CELL_SIZE,
+      x: (event.clientX - svgRect.left - CANVAS_PADDING) / PREVIEW_CELL_SIZE,
+      y: (event.clientY - svgRect.top - CANVAS_PADDING) / PREVIEW_CELL_SIZE,
     };
   };
 
@@ -361,7 +421,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
     if (currentLinePreview) {
         if (hoveredSnapPoint) {
             if (currentLinePreview.start.x !== hoveredSnapPoint.x || currentLinePreview.start.y !== hoveredSnapPoint.y) {
-                setEditedLines(prevLines => [...prevLines, { start: currentLinePreview.start, end: hoveredSnapPoint }]);
+                recordLines([...editedLines, { start: currentLinePreview.start, end: hoveredSnapPoint }]);
             }
         }
         setCurrentLinePreview(null);
@@ -375,7 +435,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
      if (!mousePos) { setCurrentLinePreview(null); return; }
     const endPoint = findNearestSnapPoint(mousePos);
     if (endPoint && (currentLinePreview.start.x !== endPoint.x || currentLinePreview.start.y !== endPoint.y)) {
-      setEditedLines(prevLines => [...prevLines, { start: currentLinePreview.start, end: endPoint }]);
+      recordLines([...editedLines, { start: currentLinePreview.start, end: endPoint }]);
     }
     setCurrentLinePreview(null);
   };
@@ -700,7 +760,6 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
         </div>
 
         {/* Draw Line Mode */}
-        {/* [TODO] add margin/padding in the individual cell and add guide lines after adding cells if possible */}
         <div className="flex-grow flex items-center justify-center p-2 overflow-auto custom-scrollbar min-h-[200px]">
            {activeEditorMode === null ? (
                 <div className="text-center text-neutral-500 dark:text-neutral-400 p-8 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg">
@@ -709,11 +768,30 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
                 </div>
             ) : (
               <div className='flex flex-col items-center justify-center h-full text-xs font-bold text-neutral-800 dark:text-neutral-100'>
-                <div>
-                  {/* [TODO] implement onClick={onUndo} disabled={!canUndo}, onClick={onRedo} disabled={!canRedo} */}
-                  {/* <Button variant="ghost" size="xs" title="Undo (Ctrl+Z)"><UndoIcon className="w-3 h-3" /></Button>
-                  <Button variant="ghost" size="xs" title="Redo (Ctrl+Y)"><RedoIcon className="w-3 h-3"/></Button> */}
-                </div>
+                {activeEditorMode === 'line' && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      title="Undo (Ctrl/Cmd+Z)"
+                      onClick={undoLines}
+                      disabled={!canUndoLines}
+                    >
+                      <UndoIcon className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      title="Redo (Ctrl/Cmd+Shift+Z)"
+                      onClick={redoLines}
+                      disabled={!canRedoLines}
+                    >
+                      <RedoIcon className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
                 <div className='p-1'>
                   {editedWidth} x {editedHeight}
                 </div>
@@ -727,7 +805,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
                     {renderGutterControl('inc', 'width', 'right')}
 
                     <div
-                        className="grid border border-neutral-400 dark:border-neutral-500 overflow-hidden relative select-none shadow-md"
+                        className="grid border border-neutral-400 dark:border-neutral-500 relative select-none shadow-md"
                         style={{
                             gridTemplateColumns: `repeat(${editedWidth}, ${PREVIEW_CELL_SIZE}px)`,
                             gridTemplateRows: `repeat(${editedHeight}, ${PREVIEW_CELL_SIZE}px)`,
@@ -752,7 +830,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
                                     <div
                                         key={`preview-cell-${rIdx}-${cIdx}`}
                                         onClick={() => handlePreviewCellClick(rIdx, cIdx)}
-                                        className="w-full h-full flex items-center justify-center border border-neutral-300/20 dark:border-neutral-600/20"
+                                        className="w-full h-full flex items-center justify-center"
                                         style={{
                                             cursor: 'pointer',
                                             pointerEvents: 'auto'
@@ -768,23 +846,61 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
 
                         <svg
                             ref={svgGridRef}
-                            width={editedWidth * PREVIEW_CELL_SIZE}
-                            height={editedHeight * PREVIEW_CELL_SIZE}
-                            viewBox={`0 0 ${editedWidth * PREVIEW_CELL_SIZE} ${editedHeight * PREVIEW_CELL_SIZE}`}
-                            className="absolute inset-0"
-                            style={{ pointerEvents: activeEditorMode === 'line' ? 'auto' : 'none', cursor: activeEditorMode === 'line' ? 'crosshair' : 'default' }}
+                            width={editedWidth * PREVIEW_CELL_SIZE + 2 * CANVAS_PADDING}
+                            height={editedHeight * PREVIEW_CELL_SIZE + 2 * CANVAS_PADDING}
+                            viewBox={`${-CANVAS_PADDING} ${-CANVAS_PADDING} ${editedWidth * PREVIEW_CELL_SIZE + 2 * CANVAS_PADDING} ${editedHeight * PREVIEW_CELL_SIZE + 2 * CANVAS_PADDING}`}
+                            style={{
+                                position: 'absolute',
+                                top: -CANVAS_PADDING,
+                                left: -CANVAS_PADDING,
+                                overflow: 'visible',
+                                // Sit above the gutter +/- controls (zIndex 10) so strokes
+                                // near the cell-grid edges aren't visually clipped by them.
+                                zIndex: 11,
+                                pointerEvents: activeEditorMode === 'line' ? 'auto' : 'none',
+                                cursor: activeEditorMode === 'line' ? 'crosshair' : 'default',
+                            }}
                             onMouseDown={handleSVGMouseDown}
                             onMouseMove={handleSVGMouseMove}
                             onMouseUp={handleSVGMouseUp}
                             onMouseLeave={handleSVGMouseLeave}
                         >
+                            {/* Faint cell-boundary guides for multi-cell line drawing. */}
+                            {activeEditorMode === 'line' && (editedWidth > 1 || editedHeight > 1) && (
+                                <g opacity={0.25}>
+                                    {Array.from({ length: editedWidth - 1 }).map((_, i) => (
+                                        <line
+                                            key={`vguide-${i}`}
+                                            x1={(i + 1) * PREVIEW_CELL_SIZE}
+                                            y1={0}
+                                            x2={(i + 1) * PREVIEW_CELL_SIZE}
+                                            y2={editedHeight * PREVIEW_CELL_SIZE}
+                                            stroke={isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT}
+                                            strokeWidth={1}
+                                            strokeDasharray="2 2"
+                                        />
+                                    ))}
+                                    {Array.from({ length: editedHeight - 1 }).map((_, i) => (
+                                        <line
+                                            key={`hguide-${i}`}
+                                            x1={0}
+                                            y1={(i + 1) * PREVIEW_CELL_SIZE}
+                                            x2={editedWidth * PREVIEW_CELL_SIZE}
+                                            y2={(i + 1) * PREVIEW_CELL_SIZE}
+                                            stroke={isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT}
+                                            strokeWidth={1}
+                                            strokeDasharray="2 2"
+                                        />
+                                    ))}
+                                </g>
+                            )}
                             {editedLines.map((line, index) => (
                                 <line
                                     key={`line-${index}`}
                                     x1={line.start.x * PREVIEW_CELL_SIZE} y1={line.start.y * PREVIEW_CELL_SIZE}
                                     x2={line.end.x * PREVIEW_CELL_SIZE} y2={line.end.y * PREVIEW_CELL_SIZE}
                                     stroke={editedSymbolColor === THEME_DEFAULT_SYMBOL_COLOR_SENTINEL ? (isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT) : editedSymbolColor}
-                                    strokeWidth={Math.max(1.5, PREVIEW_CELL_SIZE * 0.06)} strokeLinecap="round"
+                                    strokeWidth={Math.max(1.5, PREVIEW_CELL_SIZE * 0.06)} strokeLinecap="butt"
                                 />
                             ))}
                             {currentLinePreview && (
@@ -792,7 +908,7 @@ export const KeyEditorModal: React.FC<KeyEditorModalProps> = ({
                                     x1={currentLinePreview.start.x * PREVIEW_CELL_SIZE} y1={currentLinePreview.start.y * PREVIEW_CELL_SIZE}
                                     x2={currentLinePreview.end.x * PREVIEW_CELL_SIZE} y2={currentLinePreview.end.y * PREVIEW_CELL_SIZE}
                                     stroke={editedSymbolColor === THEME_DEFAULT_SYMBOL_COLOR_SENTINEL ? (isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT) : editedSymbolColor}
-                                    strokeWidth={Math.max(1.5, PREVIEW_CELL_SIZE * 0.06)} strokeLinecap="round" strokeDasharray="3 2"
+                                    strokeWidth={Math.max(1.5, PREVIEW_CELL_SIZE * 0.06)} strokeLinecap="butt" strokeDasharray="3 2"
                                 />
                             )}
                             {activeEditorMode === 'line' && getSnapPoints().map((p, i) => (
