@@ -1,26 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Header } from './components/Header';
 import { TabbedSidebar } from './components/TabbedSidebar';
-import { HelpView } from './components/HelpView';
 import { KnitCanvas } from './components/KnitCanvas';
-import { KeyEditorModal } from './components/KeyEditorModal';
-import { ImageImporter } from './components/ImageImporter';
+import { BlockEditorModal } from './components/BlockEditorModal';
+import { ColorEditorModal } from './components/ColorEditorModal';
 import { ImageProcessorModal } from './components/ImageProcessorModal';
-import { InstructionsGenerator } from './components/InstructionsGenerator';
 import { ChartSettingsModal } from './components/ChartSettingsModal';
 import { FloatingToolPalette } from './components/FloatingToolPalette';
 import { TopRibbon, KeyUsageData } from './components/TopRibbon';
 import { MiniMap } from './components/MiniMap';
-import { DeveloperMenuModal } from './components/DeveloperMenuModal';
-import { PublishModal } from './components/PublishModal';
-import { ExploreGallery } from './components/ExploreGallery';
-import { Modal } from './components/Modal';
-import { Button } from './components/Button';
-import { ContextMenu } from './components/ContextMenu';
 import { ExportPreviewModal } from './components/ExportPreviewModal';
-import { Tool, Layer, ChartState, Point, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ApplicationState, ClipboardData, KeyDefinition, ChartDisplaySettings, ContextMenuItem, ProcessedImageData, ManifestEntry } from './types';
+import { Tool, Layer, ChartState, Point, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ApplicationState, ClipboardData, KeyDefinition, ChartDisplaySettings, ProcessedImageData, StitchSymbolDef } from './types';
 import {
-  DEFAULT_STITCH_SYMBOLS,
   INITIAL_APPLICATION_STATE,
   INITIAL_CHART_STATE,
   DEFAULT_CELL_COLOR_LIGHT,
@@ -30,30 +21,34 @@ import {
   ZOOM_LEVELS_BASE,
   DEFAULT_ZOOM_INDEX,
   buildGridFromKeyPlacements,
-  resizeKeyPlacements,
   CELL_SIZE,
   GUTTER_SIZE,
-  insertRowInKeyPlacements,
-  deleteRowInKeyPlacements,
-  insertColInKeyPlacements,
-  deleteColInKeyPlacements,
   createNewSheet,
   KEY_ID_EMPTY,
   KEY_ID_KNIT_DEFAULT,
   generateNewKeyId,
   generateNewSheetId,
-  calculateFootprint,
-  doFootprintsOverlap,
   createChartGrid,
-  TRANSPARENT_BACKGROUND_SENTINEL,
-  THEME_DEFAULT_BACKGROUND_SENTINEL,
   ABBREVIATION_SKIP_SENTINEL
 } from './constants';
 import { useChartHistory } from './hooks/useChartHistory';
 import { getExpandedSelection } from './utils';
 import { generateChartJpeg } from './services/exportService';
-import { deserialize } from './services/serializationService';
-import { invalidateSymbolColorCache } from './canvasUtils';
+import { deserialize, serialize } from './services/serializationService';
+import { clearAutosave, loadAutosave, saveAutosave } from './lib/autosave';
+import { sanitizeColorworkState } from './lib/colorworkState';
+import {
+  clearColorworkRegion,
+  commitColorworkMutation,
+  deleteColorworkColumn,
+  deleteColorworkRow,
+  insertColorworkColumn,
+  insertColorworkRow,
+  moveColorworkPlacements,
+  opsForTiledSelection,
+  pasteColorworkPlacements,
+  resizeColorworkLayer,
+} from './services/colorworkMutationService';
 
 const MINIMAP_MAX_WIDTH = 200;
 const MINIMAP_MAX_HEIGHT = 200;
@@ -62,78 +57,41 @@ const MINIMAP_DEFAULT_BOTTOM = '8px';
 const RESPONSIVE_BREAKPOINT = 768; // md breakpoint for lifting elements
 const MINIMAP_SIDE_MARGIN = 8; // Gap between sidebar and minimap, and minimap and screen edge (if applicable)
 const ICON_RIBBON_WIDTH_CONST = 56; // From TabbedSidebar
-
-// Map URL pathname → app view. Strips the Vite base ("/knitlab/") and
-// returns the matching view for known sub-paths; everything else falls back
-// to the editor.
-function pathToView(pathname: string): 'editor' | 'explore' | 'help' {
-  const base = import.meta.env.BASE_URL;
-  const rel = (pathname.startsWith(base) ? pathname.slice(base.length) : pathname).replace(/\/$/, '');
-  if (rel === 'explore') return 'explore';
-  if (rel === 'help') return 'help';
-  return 'editor';
-}
+const COLORWORK_SYMBOLS: StitchSymbolDef[] = [];
 
 export const App: React.FC = () => {
+  const initialAutosave = useMemo(() => loadAutosave(), []);
   const {
     currentState: applicationState,
     recordChange: recordAppChange,
     undo, redo, canUndo, canRedo,
     resetHistory: resetAppHistory,
     updateCurrentState,
-  } = useChartHistory(INITIAL_APPLICATION_STATE);
+  } = useChartHistory(initialAutosave?.state ?? INITIAL_APPLICATION_STATE);
 
   const activeSheet = applicationState.sheets.find(s => s.id === applicationState.activeSheetId) || applicationState.sheets[0] || INITIAL_CHART_STATE;
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => saveAutosave(applicationState), 750);
+    return () => window.clearTimeout(timeout);
+  }, [applicationState]);
 
   const [activeKeyId, setActiveKeyIdInternal] = useState<string | null>(applicationState.keyPalette[0]?.id || null);
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<TabId>('sheets');
   const [isSidebarContentVisible, setIsSidebarContentVisible] = useState<boolean>(false);
 
-  const allSymbols = DEFAULT_STITCH_SYMBOLS;
+  const allSymbols = COLORWORK_SYMBOLS;
 
-  const [isKeyEditorOpen, setIsKeyEditorOpen] = useState(false);
-  const [editingKey, setEditingKey] = useState<KeyDefinition | null>(null);
+  const [isBlockEditorOpen, setIsBlockEditorOpen] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<KeyDefinition | null>(null);
+  const [isColorEditorOpen, setIsColorEditorOpen] = useState(false);
+  const [editingColor, setEditingColor] = useState<KeyDefinition | null>(null);
 
-  const [isImageImporterOpen, setIsImageImporterOpen] = useState(false);
   const [isImageProcessorModalOpen, setIsImageProcessorModalOpen] = useState(false);
 
-  const [isInstructionsGeneratorOpen, setIsInstructionsGeneratorOpen] = useState(false);
   const [isChartSettingsModalOpen, setIsChartSettingsModalOpen] = useState(false);
   const [isExportPreviewModalOpen, setIsExportPreviewModalOpen] = useState(false);
-  const [isDeveloperMenuOpen, setIsDeveloperMenuOpen] = useState(false);
-  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [appView, setAppView] = useState<'editor' | 'explore' | 'help'>(
-    () => (typeof window !== 'undefined' ? pathToView(window.location.pathname) : 'editor')
-  );
-  const [helpInitialAnchor, setHelpInitialAnchor] = useState<import('./components/HelpView').HelpAnchor | undefined>(undefined);
-
-  // Sync appView <-> URL pathname so /knitlab/explore deep-links into the
-  // gallery and the browser back/forward buttons move between editor and
-  // explore. The SPA-on-Pages handshake (public/404.html + index.html
-  // decoder) makes /knitlab/explore work on GitHub Pages without a backend.
-  // Also strips any leftover hash on mount so old hash-based URLs from
-  // earlier iterations clean themselves up.
-  useEffect(() => {
-    if (window.location.hash) {
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-    const sync = () => setAppView(pathToView(window.location.pathname));
-    window.addEventListener('popstate', sync);
-    return () => window.removeEventListener('popstate', sync);
-  }, []);
-  useEffect(() => {
-    const base = import.meta.env.BASE_URL;
-    const targetPath =
-      appView === 'explore' ? `${base}explore` :
-      appView === 'help' ? `${base}help` :
-      base;
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState(null, '', targetPath + window.location.search);
-    }
-  }, [appView]);
-  const [pendingDesignEntry, setPendingDesignEntry] = useState<ManifestEntry | null>(null);
-  const [openDesignError, setOpenDesignError] = useState<string | null>(null);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -224,43 +182,12 @@ export const App: React.FC = () => {
   }, [setActiveTool]);
 
   useEffect(() => {
-    const lightThemeSymbolColor = DEFAULT_STITCH_COLOR_LIGHT;
-    const darkThemeSymbolColor = DEFAULT_STITCH_COLOR_DARK;
-    const lightThemeDefaultBg = DEFAULT_CELL_COLOR_LIGHT;
-    const darkThemeDefaultBg = DEFAULT_CELL_COLOR_DARK;
-
-    updateCurrentState(prevAppState => {
-      const updatedPalette = prevAppState.keyPalette.map(key => {
-        let newKey = { ...key };
-        if (key.symbolColor === lightThemeSymbolColor && isDarkMode) {
-          newKey.symbolColor = darkThemeSymbolColor;
-        } else if (key.symbolColor === darkThemeSymbolColor && !isDarkMode) {
-          newKey.symbolColor = lightThemeSymbolColor;
-        }
-        if (key.backgroundColor !== TRANSPARENT_BACKGROUND_SENTINEL && key.backgroundColor !== THEME_DEFAULT_BACKGROUND_SENTINEL) {
-            if (key.backgroundColor === lightThemeDefaultBg && isDarkMode) {
-                newKey.backgroundColor = darkThemeDefaultBg;
-            } else if (key.backgroundColor === darkThemeDefaultBg && !isDarkMode) {
-                newKey.backgroundColor = lightThemeDefaultBg;
-            }
-        }
-        return newKey;
-      });
-      return { ...prevAppState, keyPalette: updatedPalette };
-    });
-
-    invalidateSymbolColorCache();
-
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
-  }, [isDarkMode, updateCurrentState]);
+  }, [isDarkMode]);
 
 
   useEffect(() => {
-    // Only attach when the editor is actually rendered — in help/explore views
-    // the <main> element is unmounted and the ref is null. Re-run on appView
-    // changes so we re-attach to the freshly-mounted <main> when we come back.
-    if (appView !== 'editor') return;
     const el = mainCanvasWrapperRef.current;
     if (!el) return;
     const updateSize = () => {
@@ -274,7 +201,7 @@ export const App: React.FC = () => {
     const observer = new ResizeObserver(updateSize);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [appView]);
+  }, []);
 
   useEffect(() => {
     if (!activeKeyId || !applicationState.keyPalette.find(k => k.id === activeKeyId)) {
@@ -303,13 +230,33 @@ export const App: React.FC = () => {
     const result: KeyUsageData[] = [];
     for (const [keyId, count] of counts.entries()) {
       const keyDef = applicationState.keyPalette.find(k => k.id === keyId);
-      // Exclude the "No Stitch" key definition from the tally
       if (keyDef && keyDef.id !== KEY_ID_EMPTY) {
         result.push({ keyDef, count });
       }
     }
     return result.sort((a, b) => b.count - a.count);
   }, [activeSheet, applicationState.keyPalette]);
+
+  const colorworkPalette = useMemo(() => applicationState.keyPalette.filter((key) => {
+    if (key.id === KEY_ID_EMPTY) return false;
+    if (key.colorCells) return true;
+    return key.width === 1
+      && key.height === 1
+      && (!key.cells || key.cells.flat().every((cell) => cell === null))
+      && (!key.lines || key.lines.length === 0)
+      && /^#[0-9a-fA-F]{6}$/.test(key.backgroundColor);
+  }), [applicationState.keyPalette]);
+
+  const colorworkUsageData = useMemo(
+    () => keyUsageData.filter(({ keyDef }) => colorworkPalette.some((color) => color.id === keyDef.id)),
+    [keyUsageData, colorworkPalette],
+  );
+
+  useEffect(() => {
+    if (!colorworkPalette.some((color) => color.id === activeKeyId)) {
+      setActiveKeyId(colorworkPalette[0]?.id ?? null);
+    }
+  }, [activeKeyId, colorworkPalette, setActiveKeyId]);
 
 
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
@@ -343,8 +290,51 @@ export const App: React.FC = () => {
   };
 
   const handleOpenKeyEditor = (keyToEdit?: KeyDefinition) => {
-    setEditingKey(keyToEdit || null);
-    setIsKeyEditorOpen(true);
+    if (keyToEdit?.colorCells) {
+      setEditingBlock(keyToEdit);
+      setIsBlockEditorOpen(true);
+      return;
+    }
+    if (keyToEdit
+      && keyToEdit.width === 1
+      && keyToEdit.height === 1
+      && (!keyToEdit.cells || keyToEdit.cells.flat().every((cell) => cell === null))
+      && (!keyToEdit.lines || keyToEdit.lines.length === 0)
+      && /^#[0-9a-fA-F]{6}$/.test(keyToEdit.backgroundColor)) {
+      setEditingColor(keyToEdit);
+      setIsColorEditorOpen(true);
+      return;
+    }
+    if (keyToEdit) {
+      setEditingColor(keyToEdit);
+      setIsColorEditorOpen(true);
+    }
+  };
+
+  const handleOpenBlockEditor = (block?: KeyDefinition) => {
+    setEditingBlock(block ?? null);
+    setIsBlockEditorOpen(true);
+  };
+
+  const handleAddColor = (hex: string) => {
+    const normalized = hex.toUpperCase();
+    const existing = applicationState.keyPalette.find(
+      (key) => key.backgroundColor.toUpperCase() === normalized,
+    );
+    if (existing) {
+      setActiveKeyId(existing.id);
+      return;
+    }
+    addOrUpdateKeyInPalette({
+      id: generateNewKeyId().replace(/^key_/, 'key_color_'),
+      name: normalized,
+      abbreviation: null,
+      width: 1,
+      height: 1,
+      backgroundColor: normalized,
+      symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
+      cells: [[null]],
+    });
   };
 
   const handleDeleteKeyFromPalette = (keyIdToDelete: string) => {
@@ -391,42 +381,12 @@ export const App: React.FC = () => {
         name: newName,
         abbreviation: keyToDuplicate.abbreviation, // Copy abbreviation too
         cells: keyToDuplicate.cells ? keyToDuplicate.cells.map(row => row.map(cell => cell ? {...cell} : null)) : undefined,
+        colorCells: keyToDuplicate.colorCells?.map(row => [...row]),
         lines: keyToDuplicate.lines ? keyToDuplicate.lines.map(line => ({...line, start: {...line.start}, end: {...line.end}})) : undefined,
     };
     addOrUpdateKeyInPalette(newKey);
-    handleOpenKeyEditor(newKey);
-  };
-
-  const applyKeyToLayerPlacements = (
-    layer: Layer,
-    keyToApply: KeyDefinition,
-    anchor: Point,
-    chartRows: number, chartCols: number,
-    keyPalette: KeyDefinition[]
-  ): Layer => {
-    let newPlacements = [...layer.keyPlacements];
-
-    const footprintOfOperation = calculateFootprint(anchor, keyToApply);
-
-    const indicesToRemove: number[] = [];
-    for (let i = 0; i < newPlacements.length; i++) {
-      const existingPlacement = newPlacements[i];
-      const existingKeyDef = keyPalette.find(k => k.id === existingPlacement.keyId);
-      if (!existingKeyDef) continue;
-      const existingFootprint = calculateFootprint(existingPlacement.anchor, existingKeyDef);
-      if (doFootprintsOverlap(footprintOfOperation, existingFootprint)) {
-          indicesToRemove.push(i);
-      }
-    }
-    indicesToRemove.sort((a,b) => b - a).forEach(idx => newPlacements.splice(idx, 1));
-
-    if (anchor.y < chartRows && anchor.x < chartCols) {
-         if (anchor.y + keyToApply.height <= chartRows && anchor.x + keyToApply.width <= chartCols) {
-            newPlacements.push({ anchor, keyId: keyToApply.id });
-         }
-    }
-    const newGrid = buildGridFromKeyPlacements(newPlacements, chartRows, chartCols, keyPalette);
-    return { ...layer, keyPlacements: newPlacements, grid: newGrid };
+    if (newKey.colorCells) handleOpenBlockEditor(newKey);
+    else handleOpenKeyEditor(newKey);
   };
 
   const modifyActiveSheetLayer = useCallback((
@@ -487,11 +447,9 @@ export const App: React.FC = () => {
 
         let updatedPalette = prevAppState.keyPalette;
 
-        const newLayers = oldSheet.layers.map(layer => {
-            const resizedPlacements = resizeKeyPlacements(layer.keyPlacements, updatedPalette, settings.rows, settings.cols);
-            const newGrid = buildGridFromKeyPlacements(resizedPlacements, settings.rows, settings.cols, updatedPalette);
-            return { ...layer, keyPlacements: resizedPlacements, grid: newGrid };
-        });
+        const newLayers = oldSheet.layers.map(layer =>
+          resizeColorworkLayer(layer, settings.rows, settings.cols, updatedPalette),
+        );
 
         const updatedSheet: ChartState = {
             ...oldSheet,
@@ -665,8 +623,16 @@ export const App: React.FC = () => {
     setLastActionPoint(anchorCoords);
     if (!keyDefToApply) return;
 
-    const modifier = (currentLayer: Layer, chartRows: number, chartCols: number, currentKeyPalette: KeyDefinition[]) =>
-        applyKeyToLayerPlacements(currentLayer, keyDefToApply, anchorCoords, chartRows, chartCols, currentKeyPalette);
+    const modifier = (currentLayer: Layer, chartRows: number, chartCols: number, currentKeyPalette: KeyDefinition[]) => {
+      const result = commitColorworkMutation({
+        layer: currentLayer,
+        ops: [{ key: keyDefToApply, anchor: anchorCoords }],
+        chartRows,
+        chartCols,
+        palette: currentKeyPalette,
+      });
+      return result.ok ? result.layer : null;
+    };
 
     if (isCurrentlyDragPaintingRef.current) { // True only for subsequent drag points
       updateCurrentState(prevAppState => modifyActiveSheetLayerWithModifier(prevAppState, modifier));
@@ -677,26 +643,22 @@ export const App: React.FC = () => {
 
   const applyOrClearSelection = useCallback((applyActive: boolean) => {
     if (!selection || !activeSheet) return;
-    const keyIdToUse = applyActive ? activeKeyId : KEY_ID_EMPTY;
-    if (!keyIdToUse && applyActive) return;
-    const keyDefToApplyToSelection = applicationState.keyPalette.find(k => k.id === keyIdToUse);
-    if (!keyDefToApplyToSelection) return;
+    const keyDefToApplyToSelection = applicationState.keyPalette.find(k => k.id === activeKeyId);
+    if (applyActive && !keyDefToApplyToSelection) return;
 
     modifyActiveSheetLayer((currentLayer, chartRows, chartCols, currentKeyPalette) => {
-        let modifiedLayer = { ...currentLayer, keyPlacements: [...currentLayer.keyPlacements] };
-        const normSel = {
-            start: { x: Math.min(selection.start.x, selection.end.x), y: Math.min(selection.start.y, selection.end.y) },
-            end: { x: Math.max(selection.start.x, selection.end.x), y: Math.max(selection.start.y, selection.end.y) }
-        };
-        for (let r = normSel.start.y; r <= normSel.end.y; ) {
-            for (let c = normSel.start.x; c <= normSel.end.x; ) {
-                const currentAnchor = { y: r, x: c };
-                modifiedLayer = applyKeyToLayerPlacements(modifiedLayer, keyDefToApplyToSelection, currentAnchor, chartRows, chartCols, currentKeyPalette);
-                c += (keyDefToApplyToSelection.id !== KEY_ID_EMPTY || applyActive) ? keyDefToApplyToSelection.width : 1;
-            }
-             r += (keyDefToApplyToSelection.id !== KEY_ID_EMPTY || applyActive) ? keyDefToApplyToSelection.height : 1;
-        }
-        return modifiedLayer;
+      if (!applyActive) {
+        return clearColorworkRegion(currentLayer, selection, chartRows, chartCols, currentKeyPalette);
+      }
+      if (!keyDefToApplyToSelection) return null;
+      const result = commitColorworkMutation({
+        layer: currentLayer,
+        ops: opsForTiledSelection(selection, keyDefToApplyToSelection),
+        chartRows,
+        chartCols,
+        palette: currentKeyPalette,
+      });
+      return result.ok ? result.layer : null;
     });
   }, [selection, activeSheet, activeKeyId, applicationState.keyPalette, modifyActiveSheetLayer]);
 
@@ -736,45 +698,16 @@ export const App: React.FC = () => {
             if (sheet.id === targetSheetId) {
                 const newLayers = sheet.layers.map(layer => {
                     if (layer.id === targetLayerId) {
-                        let modifiedLayer = { ...layer, keyPlacements: [...layer.keyPlacements] };
-
-                        const knitKeyDefault = currentPalette.find(k => k.id === KEY_ID_KNIT_DEFAULT);
-                        if (knitKeyDefault) {
-                            for (const relInstance of relativeKeyInstances) {
-                                const originalKeyDef = currentPalette.find(k => k.id === relInstance.keyId);
-                                if (!originalKeyDef) continue;
-
-                                const originalAnchorAbs: Point = {
-                                    x: originalStartCoords.x + relInstance.anchor.x,
-                                    y: originalStartCoords.y + relInstance.anchor.y
-                                };
-                                for(let rOff = 0; rOff < originalKeyDef.height; rOff++) {
-                                    for(let cOff = 0; cOff < originalKeyDef.width; cOff++) {
-                                        modifiedLayer = applyKeyToLayerPlacements(
-                                            modifiedLayer, knitKeyDefault,
-                                            {x: originalAnchorAbs.x + cOff, y: originalAnchorAbs.y + rOff},
-                                            sheet.rows, sheet.cols, currentPalette
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                        for (const relInstance of relativeKeyInstances) {
-                            const keyDefToPlace = currentPalette.find(k => k.id === relInstance.keyId);
-                            if (!keyDefToPlace) continue;
-
-                            const absoluteAnchor: Point = {
-                                x: dropTarget.x + relInstance.anchor.x,
-                                y: dropTarget.y + relInstance.anchor.y,
-                            };
-                            if (absoluteAnchor.x < sheet.cols && absoluteAnchor.y < sheet.rows) {
-                                modifiedLayer = applyKeyToLayerPlacements(
-                                    modifiedLayer, keyDefToPlace, absoluteAnchor,
-                                    sheet.rows, sheet.cols, currentPalette
-                                );
-                            }
-                        }
-                        return modifiedLayer;
+                        const result = moveColorworkPlacements({
+                          layer,
+                          relativeKeyInstances,
+                          sourceOrigin: originalStartCoords,
+                          targetOrigin: dropTarget,
+                          chartRows: sheet.rows,
+                          chartCols: sheet.cols,
+                          palette: currentPalette,
+                        });
+                        return result.ok ? result.layer : layer;
                     }
                     return layer;
                 });
@@ -814,10 +747,13 @@ export const App: React.FC = () => {
             const chartC = normSel.start.x + cOffset;
             const cell = currentActiveLayer.grid[chartR]?.[chartC];
 
-            if (cell?.keyId) {
+            if (cell?.keyId && cell.keyId !== KEY_ID_KNIT_DEFAULT) {
                 const keyDef = applicationState.keyPalette.find(k => k.id === cell.keyId);
                 if (keyDef) {
                     if (cell?.isAnchorCellForMxN || (keyDef.width === 1 && keyDef.height === 1)) {
+                        const fitsSelection = cOffset + keyDef.width <= selWidth &&
+                            rOffset + keyDef.height <= selHeight;
+                        if (!fitsSelection) continue;
                         const existing = relativeKeyInstances.find(
                             ki => ki.anchor.x === cOffset && ki.anchor.y === rOffset
                         );
@@ -843,23 +779,10 @@ export const App: React.FC = () => {
   const handleCutSelection = useCallback(() => {
     if (!selection || !activeSheet || !activeSheet.activeLayerId || isPreviewingPaste) return;
     handleCopySelection();
-    const knitKey = applicationState.keyPalette.find(k => k.id === KEY_ID_KNIT_DEFAULT);
-    if(knitKey) {
-        modifyActiveSheetLayer((currentLayer, chartRows, chartCols, currentKeyPalette) => {
-            let modifiedLayer = { ...currentLayer, keyPlacements: [...currentLayer.keyPlacements] };
-            const normSel = {
-                start: { x: Math.min(selection.start.x, selection.end.x), y: Math.min(selection.start.y, selection.end.y) },
-                end: { x: Math.max(selection.start.x, selection.end.x), y: Math.max(selection.start.y, selection.end.y) }
-            };
-            for (let r = normSel.start.y; r <= normSel.end.y; r++) {
-                for (let c = normSel.start.x; c <= normSel.end.x; c++) {
-                    modifiedLayer = applyKeyToLayerPlacements(modifiedLayer, knitKey, {y:r, x:c}, chartRows, chartCols, currentKeyPalette);
-                }
-            }
-            return modifiedLayer;
-        });
-    }
-  }, [handleCopySelection, selection, activeSheet, isPreviewingPaste, applicationState.keyPalette, modifyActiveSheetLayer]);
+    modifyActiveSheetLayer((currentLayer, chartRows, chartCols, currentKeyPalette) =>
+      clearColorworkRegion(currentLayer, selection, chartRows, chartCols, currentKeyPalette),
+    );
+  }, [handleCopySelection, selection, activeSheet, isPreviewingPaste, modifyActiveSheetLayer]);
 
   const _performActualPaste = (
     targetOrigin: Point,
@@ -876,10 +799,15 @@ export const App: React.FC = () => {
         const newKeysToAdd: KeyDefinition[] = [];
         for (const defFromClipboard of clipboardDataToPaste.sourceKeyDefinitions) {
             if (!currentPalette.some(k => k.id === defFromClipboard.id)) {
-                const newPastedKey = {
+                const newPastedKey: KeyDefinition = {
                   ...defFromClipboard,
-                  cells: defFromClipboard.lines && defFromClipboard.lines.length > 0 ? undefined : (defFromClipboard.cells || [[null]]),
-                  lines: defFromClipboard.cells && defFromClipboard.cells.flat().some(c => c !== null) ? undefined : defFromClipboard.lines,
+                  cells: defFromClipboard.cells?.map(row => row.map(cell => cell ? { ...cell } : null)),
+                  colorCells: defFromClipboard.colorCells?.map(row => [...row]),
+                  lines: defFromClipboard.lines?.map(line => ({
+                    ...line,
+                    start: { ...line.start },
+                    end: { ...line.end },
+                  })),
                 };
                 newKeysToAdd.push(newPastedKey);
             }
@@ -894,36 +822,18 @@ export const App: React.FC = () => {
                 const newLayers = sheet.layers.map(layer => {
                     if (layer.id === targetLayerId) {
                         layerModified = true;
-                        let modifiedLayer = { ...layer, keyPlacements: [...layer.keyPlacements] };
-                        const knitKeyDefault = currentPalette.find(k => k.id === KEY_ID_KNIT_DEFAULT);
-
                         const isPasteIntoMxNSelection = activeSelectionForContext &&
                             (activeSelectionForContext.end.x - activeSelectionForContext.start.x > 0 ||
                              activeSelectionForContext.end.y - activeSelectionForContext.start.y > 0);
-
-                        if (isPasteIntoMxNSelection && activeSelectionForContext && knitKeyDefault) {
-                            for (let r = activeSelectionForContext.start.y; r <= activeSelectionForContext.end.y; r++) {
-                                for (let c = activeSelectionForContext.start.x; c <= activeSelectionForContext.end.x; c++) {
-                                    modifiedLayer = applyKeyToLayerPlacements(
-                                        modifiedLayer, knitKeyDefault, { y: r, x: c },
-                                        sheet.rows, sheet.cols, currentPalette
-                                    );
-                                }
-                            }
-                        }
-
+                        const ops = [];
                         for (const relInstance of clipboardDataToPaste.relativeKeyInstances) {
                             const keyDefToPlace = currentPalette.find(k => k.id === relInstance.keyId);
-                            if (!keyDefToPlace) continue;
+                            if (!keyDefToPlace || keyDefToPlace.id === KEY_ID_KNIT_DEFAULT) continue;
 
                             const absoluteAnchor: Point = {
                                 x: targetOrigin.x + relInstance.anchor.x,
                                 y: targetOrigin.y + relInstance.anchor.y,
                             };
-
-                            const fitsInSheet = absoluteAnchor.x + keyDefToPlace.width <= sheet.cols &&
-                                                absoluteAnchor.y + keyDefToPlace.height <= sheet.rows;
-                            if (!fitsInSheet) continue;
 
                             let placeThisKey = true;
                             if (isPasteIntoMxNSelection && activeSelectionForContext) {
@@ -931,20 +841,27 @@ export const App: React.FC = () => {
                                     x: absoluteAnchor.x + keyDefToPlace.width - 1,
                                     y: absoluteAnchor.y + keyDefToPlace.height - 1,
                                 };
-                                if (keyFootprintEnd.x > activeSelectionForContext.end.x ||
+                                if (absoluteAnchor.x < activeSelectionForContext.start.x ||
+                                    absoluteAnchor.y < activeSelectionForContext.start.y ||
+                                    keyFootprintEnd.x > activeSelectionForContext.end.x ||
                                     keyFootprintEnd.y > activeSelectionForContext.end.y) {
                                     placeThisKey = false;
                                 }
                             }
 
                             if (placeThisKey) {
-                                modifiedLayer = applyKeyToLayerPlacements(
-                                    modifiedLayer, keyDefToPlace, absoluteAnchor,
-                                    sheet.rows, sheet.cols, currentPalette
-                                );
+                                ops.push({ key: keyDefToPlace, anchor: absoluteAnchor });
                             }
                         }
-                        return modifiedLayer;
+                        const result = pasteColorworkPlacements({
+                          layer,
+                          ops,
+                          clearRegion: isPasteIntoMxNSelection ? activeSelectionForContext : null,
+                          chartRows: sheet.rows,
+                          chartCols: sheet.cols,
+                          palette: currentPalette,
+                        });
+                        return result.ok ? result.layer : layer;
                     }
                     return layer;
                 });
@@ -1016,17 +933,15 @@ export const App: React.FC = () => {
 
       const newNumRows = oldActiveSheet.rows + 1;
 
-      const newLayers = oldActiveSheet.layers.map(layer => {
-        const newKeyPlacements = insertRowInKeyPlacements(
-          layer.keyPlacements,
+      const newLayers = oldActiveSheet.layers.map(layer =>
+        insertColorworkRow(
+          layer,
           rowIndex,
-          layer.grid,
+          oldActiveSheet.rows,
+          oldActiveSheet.cols,
           prevAppState.keyPalette,
-          oldActiveSheet.cols
-        );
-        const newGrid = buildGridFromKeyPlacements(newKeyPlacements, newNumRows, oldActiveSheet.cols, prevAppState.keyPalette);
-        return { ...layer, keyPlacements: newKeyPlacements, grid: newGrid };
-      });
+        ),
+      );
 
       const newSheet = { ...oldActiveSheet, rows: newNumRows, layers: newLayers };
       const newSheets = [...prevAppState.sheets];
@@ -1044,11 +959,15 @@ export const App: React.FC = () => {
       if (oldActiveSheet.rows <= 1) return prevAppState;
       const newNumRows = oldActiveSheet.rows - 1;
 
-      const newLayers = oldActiveSheet.layers.map(layer => {
-        const newKeyPlacements = deleteRowInKeyPlacements(layer.keyPlacements, rowIndex, prevAppState.keyPalette, newNumRows);
-        const newGrid = buildGridFromKeyPlacements(newKeyPlacements, newNumRows, oldActiveSheet.cols, prevAppState.keyPalette);
-        return { ...layer, keyPlacements: newKeyPlacements, grid: newGrid };
-      });
+      const newLayers = oldActiveSheet.layers.map(layer =>
+        deleteColorworkRow(
+          layer,
+          rowIndex,
+          oldActiveSheet.rows,
+          oldActiveSheet.cols,
+          prevAppState.keyPalette,
+        ),
+      );
 
       const newSheet = { ...oldActiveSheet, rows: newNumRows, layers: newLayers };
       const newSheets = [...prevAppState.sheets];
@@ -1078,17 +997,15 @@ export const App: React.FC = () => {
 
       const newNumCols = oldActiveSheet.cols + 1;
 
-      const newLayers = oldActiveSheet.layers.map(layer => {
-        const newKeyPlacements = insertColInKeyPlacements(
-            layer.keyPlacements,
-            colIndex,
-            layer.grid,
-            prevAppState.keyPalette,
-            oldActiveSheet.rows
-        );
-        const newGrid = buildGridFromKeyPlacements(newKeyPlacements, oldActiveSheet.rows, newNumCols, prevAppState.keyPalette);
-        return { ...layer, keyPlacements: newKeyPlacements, grid: newGrid };
-      });
+      const newLayers = oldActiveSheet.layers.map(layer =>
+        insertColorworkColumn(
+          layer,
+          colIndex,
+          oldActiveSheet.rows,
+          oldActiveSheet.cols,
+          prevAppState.keyPalette,
+        ),
+      );
 
       const newSheet = { ...oldActiveSheet, cols: newNumCols, layers: newLayers };
       const newSheets = [...prevAppState.sheets];
@@ -1106,11 +1023,15 @@ export const App: React.FC = () => {
       if (oldActiveSheet.cols <= 1) return prevAppState;
       const newNumCols = oldActiveSheet.cols - 1;
 
-      const newLayers = oldActiveSheet.layers.map(layer => {
-        const newKeyPlacements = deleteColInKeyPlacements(layer.keyPlacements, colIndex, prevAppState.keyPalette, newNumCols);
-        const newGrid = buildGridFromKeyPlacements(newKeyPlacements, oldActiveSheet.rows, newNumCols, prevAppState.keyPalette);
-        return { ...layer, keyPlacements: newKeyPlacements, grid: newGrid };
-      });
+      const newLayers = oldActiveSheet.layers.map(layer =>
+        deleteColorworkColumn(
+          layer,
+          colIndex,
+          oldActiveSheet.rows,
+          oldActiveSheet.cols,
+          prevAppState.keyPalette,
+        ),
+      );
 
       const newSheet = { ...oldActiveSheet, cols: newNumCols, layers: newLayers };
       const newSheets = [...prevAppState.sheets];
@@ -1181,8 +1102,6 @@ export const App: React.FC = () => {
     setViewOffset({ x: -targetOffsetX - mainCanvasGutterLeft, y: -targetOffsetY - mainCanvasGutterTop });
   };
 
-  const handleChartGeneratedFromImage = (chartData: any) => { console.log("Chart data from image importer (raw):", chartData); };
-
   const processLoadApplicationStateDirectly = (data: string) => {
     try {
         // Use the new serialization service (handles both legacy JSON and new compressed format)
@@ -1198,10 +1117,13 @@ export const App: React.FC = () => {
                 backgroundColor: k.backgroundColor || (isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT),
                 symbolColor: k.symbolColor || (isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT),
                 cells: (k.cells && Array.isArray(k.cells)) ? k.cells.map((row: any) => Array.isArray(row) ? row.map((cell: any) => cell) : [null]) : [[null]],
+                colorCells: (k.colorCells && Array.isArray(k.colorCells))
+                  ? k.colorCells.map((row: unknown) => Array.isArray(row) ? row.map((color) => color) : [])
+                  : undefined,
                 lines: (k.lines && Array.isArray(k.lines)) ? k.lines : undefined,
             }));
 
-            const validatedState: ApplicationState = {
+            const validatedState = sanitizeColorworkState({
                 ...loadedState,
                 keyPalette: validatedPalette,
                 sheets: loadedState.sheets.map((s: ChartState) => ({
@@ -1214,10 +1136,9 @@ export const App: React.FC = () => {
                         grid: buildGridFromKeyPlacements(l.keyPlacements || [], s.rows, s.cols, validatedPalette)
                     }))
                 }))
-            };
+            });
 
             resetAppHistory(validatedState);
-            setIsDeveloperMenuOpen(false); // Close dev menu on success
             setSelection(null);
             setIsActuallyDrawingSel(false);
             setIsDraggingSelection(false);
@@ -1235,34 +1156,24 @@ export const App: React.FC = () => {
     }
   };
 
-  const loadDesignFromExplore = async (entry: ManifestEntry) => {
-    setOpenDesignError(null);
-    try {
-      const url = `${import.meta.env.BASE_URL}${entry.payloadUrl}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      processLoadApplicationStateDirectly(text);
-      // Stamp remix metadata silently (no history entry — survives saves).
-      updateCurrentState(prev => ({
-        ...prev,
-        originalDesignId: entry.id,
-        originalAuthor: entry.author,
-        originalTitle: entry.title,
-      }));
-      setAppView('editor');
-    } catch (err) {
-      setOpenDesignError(err instanceof Error ? err.message : 'Unknown error');
-    }
+  const handleNewChart = () => {
+    if (canUndo && !window.confirm('Start a new chart? Your current browser session will be replaced.')) return;
+    clearAutosave();
+    resetAppHistory(structuredClone(INITIAL_APPLICATION_STATE));
+    setActiveKeyId(INITIAL_APPLICATION_STATE.keyPalette[0]?.id ?? null);
+    setSelection(null);
+    setViewOffset({ x: 0, y: 0 });
   };
 
-  const handleOpenDesignRequested = (entry: ManifestEntry) => {
-    if (canUndo) {
-      // User has unsaved edits — confirm before replacing.
-      setPendingDesignEntry(entry);
-    } else {
-      loadDesignFromExplore(entry);
-    }
+  const handleSaveProject = () => {
+    const blob = new Blob([serialize(applicationState)], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = activeSheet.name.replace(/[^a-z0-9_-]/gi, '_') || 'chart';
+    link.href = url;
+    link.download = `${filename}.knitlab`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleCreateChartFromProcessedImage = (data: ProcessedImageData) => {
@@ -1321,10 +1232,8 @@ export const App: React.FC = () => {
                 const colorIndex = r * data.gridData.cols + c;
                 const cellColorHex = data.gridData.colors[colorIndex];
                 const keyIdForCell = colorToKeyIdMap.get(cellColorHex);
-                if (keyIdForCell) {
+                if (keyIdForCell && keyIdForCell !== KEY_ID_KNIT_DEFAULT) {
                     newKeyPlacements.push({ anchor: { y: r, x: c }, keyId: keyIdForCell });
-                } else {
-                    newKeyPlacements.push({ anchor: { y: r, x: c }, keyId: KEY_ID_KNIT_DEFAULT });
                 }
             }
         }
@@ -1363,7 +1272,6 @@ export const App: React.FC = () => {
 
   const [dynamicBottomStyle, setDynamicBottomStyle] = useState({ miniMap: MINIMAP_DEFAULT_BOTTOM, footer: FOOTER_DEFAULT_BOTTOM });
   const floatingToolbarRef = useRef<HTMLDivElement>(null);
-  const [devContextMenu, setDevContextMenu] = useState<{ visible: boolean; x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [sidebarActualWidth, setSidebarActualWidth] = useState(ICON_RIBBON_WIDTH_CONST);
 
   useEffect(() => {
@@ -1397,16 +1305,6 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const handleFooterContextMenu = (event: React.MouseEvent) => {
-    event.preventDefault();
-    setDevContextMenu({
-        visible: true,
-        x: event.clientX,
-        y: event.clientY,
-        items: [{ label: "Developer Menu", action: () => setIsDeveloperMenuOpen(true) }]
-    });
-  };
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1414,7 +1312,7 @@ export const App: React.FC = () => {
           event.target instanceof HTMLTextAreaElement ||
           event.target instanceof HTMLSelectElement) {
         // Don't interfere if user is typing in an input/modal
-        if (event.key === "Escape" && (isKeyEditorOpen || isImageImporterOpen || isImageProcessorModalOpen || isInstructionsGeneratorOpen || isChartSettingsModalOpen || isExportPreviewModalOpen || isDeveloperMenuOpen || isPublishModalOpen)) {
+        if (event.key === "Escape" && (isBlockEditorOpen || isColorEditorOpen || isImageProcessorModalOpen || isChartSettingsModalOpen || isExportPreviewModalOpen)) {
             // Allow Escape to close modals even if an input inside has focus
         } else {
             return;
@@ -1457,8 +1355,8 @@ export const App: React.FC = () => {
       if (!event.ctrlKey && !event.metaKey && keyNum >= 1 && keyNum <= 5) {
           event.preventDefault();
           const keyIndex = keyNum - 1;
-          if (applicationState.keyPalette[keyIndex]) {
-              setActiveKeyId(applicationState.keyPalette[keyIndex].id);
+          if (colorworkPalette[keyIndex]) {
+              setActiveKeyId(colorworkPalette[keyIndex].id);
           }
       }
 
@@ -1495,32 +1393,28 @@ export const App: React.FC = () => {
     };
   }, [
     isPreviewingPaste, isActuallyDrawingSel, isDraggingSelection, selection,
-    activeTool, clipboardContent, applicationState.keyPalette, // Added keyPalette for shortcut access
+    activeTool, clipboardContent, colorworkPalette,
     undo, redo, handleCopySelection, handleCutSelection, handlePasteFromClipboard,
     clearAllInCurrentSelection, setActiveTool, setActiveKeyId, handlePastePreviewCancel, // Added setActiveKeyId
-    isKeyEditorOpen, isImageImporterOpen, isImageProcessorModalOpen,
-    isInstructionsGeneratorOpen, isChartSettingsModalOpen,
-    isExportPreviewModalOpen, isDeveloperMenuOpen, isPublishModalOpen
+    isBlockEditorOpen, isColorEditorOpen, isImageProcessorModalOpen,
+    isChartSettingsModalOpen, isExportPreviewModalOpen
   ]);
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-100 dark:bg-neutral-800 transition-colors duration-300">
-      {appView === 'editor' ? (
-      <>
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-100 transition-colors duration-300 dark:bg-neutral-800">
       <Header
         onUndo={undo}
         canUndo={canUndo}
         onRedo={redo}
         canRedo={canRedo}
+        onNew={handleNewChart}
+        onOpenProject={processLoadApplicationStateDirectly}
+        onSaveProject={handleSaveProject}
+        onOpenExport={() => setIsExportPreviewModalOpen(true)}
+        onImportImage={() => setIsImageProcessorModalOpen(true)}
         isDarkMode={isDarkMode}
         toggleDarkMode={toggleDarkMode}
         onOpenSettings={() => setIsChartSettingsModalOpen(true)}
-        onOpenExportModal={() => setIsExportPreviewModalOpen(true)}
-        onOpenPublish={() => setIsPublishModalOpen(true)}
-        onOpenExplore={() => setAppView('explore')}
-        onOpenHelp={() => { setHelpInitialAnchor(undefined); setAppView('help'); }}
-        onImport={() => setIsImageImporterOpen(true)}
-        onGenerateInstructions={() => setIsInstructionsGeneratorOpen(true)}
         currentZoom={currentZoom}
         onZoomChange={setCurrentZoom}
         chartRows={activeSheet.rows}
@@ -1528,10 +1422,11 @@ export const App: React.FC = () => {
       />
 
       <TopRibbon
-        keyPalette={applicationState.keyPalette}
+        keyPalette={colorworkPalette}
         activeKeyId={activeKeyId}
         onKeySelect={setActiveKeyId}
-        onAddKey={() => handleOpenKeyEditor()}
+        onAddColor={handleAddColor}
+        onAddBlock={() => handleOpenBlockEditor()}
         onEditKey={handleOpenKeyEditor}
         onDeleteKey={handleDeleteKeyFromPalette}
         onDuplicateKey={handleDuplicateKey}
@@ -1539,10 +1434,10 @@ export const App: React.FC = () => {
         isDarkMode={isDarkMode}
         showKeyUsageTally={showKeyUsageTallyGlobal}
         onToggleShowKeyTally={toggleShowKeyUsageTallyGlobal} // Not used by UI but part of props
-        keyUsageData={keyUsageData}
+        keyUsageData={colorworkUsageData}
       />
 
-      <div className="flex flex-grow overflow-hidden">
+      <div className="flex min-h-0 flex-grow overflow-hidden">
         <TabbedSidebar
           layers={activeSheet.layers}
           activeLayerId={activeSheet.activeLayerId}
@@ -1566,7 +1461,7 @@ export const App: React.FC = () => {
           onOpenImageProcessor={() => setIsImageProcessorModalOpen(true)}
           onActualWidthChange={setSidebarActualWidth}
         />
-        <main ref={mainCanvasWrapperRef} className="flex-grow flex items-center justify-center relative overflow-hidden">
+        <main ref={mainCanvasWrapperRef} className="relative flex min-h-0 flex-grow items-center justify-center overflow-hidden">
           {canvasContainerSize.width > 0 && canvasContainerSize.height > 0 && activeSheet && (
             <KnitCanvas
               chartState={activeSheet}
@@ -1626,7 +1521,7 @@ export const App: React.FC = () => {
             />
           )}
             <div
-              className="fixed z-10 opacity-80 hover:opacity-100 transition-opacity"
+              className="fixed z-10 hidden opacity-80 transition-opacity hover:opacity-100 md:block"
               style={{
                 bottom: dynamicBottomStyle.miniMap,
                 left: `${sidebarActualWidth + MINIMAP_SIDE_MARGIN}px`,
@@ -1672,45 +1567,33 @@ export const App: React.FC = () => {
       />
 
       <footer
-        onContextMenu={handleFooterContextMenu}
-        className="fixed right-2 p-2 text-xs text-neutral-500 dark:text-neutral-400 font-areumFooter z-10 transition-all duration-150 ease-in-out text-right"
+        className="fixed right-2 z-10 hidden p-2 text-right text-xs text-neutral-500 transition-all duration-150 ease-in-out dark:text-neutral-400 md:block font-areumFooter"
         style={{ bottom: dynamicBottomStyle.footer }}
         aria-label="Application Footer"
       >
         © 2026 Areum Knits. All rights reserved.<br/>
         Crafted with ❤️ and code.
       </footer>
-      {devContextMenu?.visible && <ContextMenu x={devContextMenu.x} y={devContextMenu.y} items={devContextMenu.items} onClose={() => setDevContextMenu(null)} />}
-      </>
-      ) : appView === 'help' ? (
-      <HelpView
-        onBackToEditor={() => setAppView('editor')}
-        initialAnchor={helpInitialAnchor}
-      />
-      ) : (
-      <ExploreGallery
-        onOpenInEditor={handleOpenDesignRequested}
-        onBackToEditor={() => setAppView('editor')}
-        onOpenHelp={() => { setHelpInitialAnchor('publishing'); setAppView('help'); }}
-      />
-      )}
-
-      {isKeyEditorOpen && (
-        <KeyEditorModal
-          isOpen={isKeyEditorOpen}
-          onClose={() => setIsKeyEditorOpen(false)}
+      {isBlockEditorOpen && (
+        <BlockEditorModal
+          isOpen={isBlockEditorOpen}
+          onClose={() => setIsBlockEditorOpen(false)}
           onSave={addOrUpdateKeyInPalette}
-          existingKey={editingKey}
-          allStitchSymbols={allSymbols}
+          existingBlock={editingBlock}
+          paletteColors={Array.from(new Set(applicationState.keyPalette.flatMap((key) => {
+            const direct = /^#[0-9a-fA-F]{6}$/.test(key.backgroundColor) ? [key.backgroundColor] : [];
+            const tiled = key.colorCells?.flat().filter((color): color is string => typeof color === 'string') ?? [];
+            return [...direct, ...tiled];
+          })))}
           isDarkMode={isDarkMode}
-          keyPalette={applicationState.keyPalette}
         />
       )}
-      {isImageImporterOpen && (
-        <ImageImporter
-          isOpen={isImageImporterOpen}
-          onClose={() => setIsImageImporterOpen(false)}
-          onChartGenerated={handleChartGeneratedFromImage}
+      {isColorEditorOpen && (
+        <ColorEditorModal
+          isOpen={isColorEditorOpen}
+          onClose={() => setIsColorEditorOpen(false)}
+          color={editingColor}
+          onSave={addOrUpdateKeyInPalette}
         />
       )}
       {isImageProcessorModalOpen && (
@@ -1719,15 +1602,6 @@ export const App: React.FC = () => {
             onClose={() => setIsImageProcessorModalOpen(false)}
             onCreateChart={handleCreateChartFromProcessedImage}
             isDarkMode={isDarkMode}
-        />
-      )}
-      {isInstructionsGeneratorOpen && activeSheet && (
-        <InstructionsGenerator
-          isOpen={isInstructionsGeneratorOpen}
-          onClose={() => setIsInstructionsGeneratorOpen(false)}
-          chartState={activeSheet}
-          stitchSymbols={allSymbols}
-          keyPalette={applicationState.keyPalette}
         />
       )}
       {isChartSettingsModalOpen && activeSheet && (
@@ -1749,73 +1623,6 @@ export const App: React.FC = () => {
           initialZoom={currentZoom}
           generateChartJpeg={generateChartJpeg}
           effectiveZoomLevels={getEffectiveZoomLevels()}
-        />
-      )}
-      {isDeveloperMenuOpen && (
-        <DeveloperMenuModal
-            isOpen={isDeveloperMenuOpen}
-            onClose={() => setIsDeveloperMenuOpen(false)}
-            applicationState={applicationState}
-            processLoadState={processLoadApplicationStateDirectly}
-            showKeyUsageTally={showKeyUsageTallyGlobal}
-            onToggleShowKeyUsageTally={toggleShowKeyUsageTallyGlobal}
-        />
-      )}
-      {pendingDesignEntry && (
-        <Modal
-          isOpen={true}
-          onClose={() => setPendingDesignEntry(null)}
-          title="Replace your current chart?"
-          size="sm"
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-neutral-700 dark:text-neutral-300">
-              Opening <strong>{pendingDesignEntry.title}</strong> will replace your current chart.
-              You have unsaved changes — they will be lost unless you save first.
-            </p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Tip: cancel this dialog, click <strong>Download</strong> in the developer menu to save your work first, then come back.
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setPendingDesignEntry(null)}>Cancel</Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  const entry = pendingDesignEntry;
-                  setPendingDesignEntry(null);
-                  loadDesignFromExplore(entry);
-                }}
-              >
-                Discard & open
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-      {openDesignError && (
-        <Modal
-          isOpen={true}
-          onClose={() => setOpenDesignError(null)}
-          title="Could not open design"
-          size="sm"
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-red-600 dark:text-red-400">{openDesignError}</p>
-            <div className="flex justify-end">
-              <Button variant="primary" onClick={() => setOpenDesignError(null)}>OK</Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-      {isPublishModalOpen && (
-        <PublishModal
-            isOpen={isPublishModalOpen}
-            onClose={() => setIsPublishModalOpen(false)}
-            applicationState={applicationState}
-            allSymbols={allSymbols}
-            isDarkMode={isDarkMode}
-            hasEdits={canUndo}
-            onOpenHelp={() => { setHelpInitialAnchor('publishing'); setAppView('help'); }}
         />
       )}
     </div>

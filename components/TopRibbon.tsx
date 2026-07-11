@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { KeyDefinition, StitchSymbolDef, ContextMenuItem } from '../types';
 import { Button } from './Button';
-import { PlusIcon } from './Icon';
+import { GridIcon, PlusIcon } from './Icon';
 import { StitchSymbolDisplay } from './StitchSymbolDisplay';
 import {
     KEY_ID_EMPTY,
@@ -11,7 +11,8 @@ import {
     DEFAULT_CELL_COLOR_DARK,
     DEFAULT_CELL_COLOR_LIGHT,
     GRID_LINE_COLOR_DARK,
-    GRID_LINE_COLOR_LIGHT
+    GRID_LINE_COLOR_LIGHT,
+    resolveKeyCellBackgroundColor
 } from '../constants';
 import { ContextMenu } from './ContextMenu';
 
@@ -24,7 +25,8 @@ interface KeyPaletteProps {
   keyPalette: KeyDefinition[];
   activeKeyId: string | null;
   onKeySelect: (keyId: string) => void;
-  onAddKey: () => void;
+  onAddColor: (hex: string) => void;
+  onAddBlock: () => void;
   onEditKey: (key: KeyDefinition) => void;
   onDeleteKey: (keyId: string) => void;
   onDuplicateKey: (keyId: string) => void;
@@ -41,7 +43,6 @@ interface KeyPreviewButtonProps {
   onClick: () => void;
   onContextMenu: (event: React.MouseEvent, keyDef: KeyDefinition) => void;
   allStitchSymbols: StitchSymbolDef[];
-  shortcutNumber?: number;
   isDarkMode: boolean;
 }
 
@@ -51,7 +52,6 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
     onClick,
     onContextMenu,
     allStitchSymbols,
-    shortcutNumber,
     isDarkMode,
 }) => {
 
@@ -69,14 +69,7 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
 
     for (let r = 0; r < keyDef.height; r++) {
       for (let c = 0; c < keyDef.width; c++) {
-        let cellBgColor: string;
-        if (keyDef.backgroundColor === TRANSPARENT_BACKGROUND_SENTINEL) {
-            cellBgColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-        } else if (keyDef.backgroundColor === THEME_DEFAULT_BACKGROUND_SENTINEL) {
-            cellBgColor = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
-        } else {
-            cellBgColor = keyDef.backgroundColor;
-        }
+        const cellBgColor = resolveKeyCellBackgroundColor(keyDef, r, c, isDarkMode);
         cells.push(
           <div
             key={`preview-cell-${r}-${c}`}
@@ -124,7 +117,7 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
   return (
     <div className="relative group flex-shrink-0">
       <button
-        title={`${keyDef.name} (${keyDef.width}x${keyDef.height})${isActive ? ' (Active)' : ''}${shortcutNumber ? ` [${shortcutNumber}]` : ''}`}
+        title={`${keyDef.name} (${keyDef.width}x${keyDef.height})${isActive ? ' (Active)' : ''}`}
         onClick={onClick}
         onContextMenu={(e) => onContextMenu(e, keyDef)}
         className={`p-0 rounded flex items-center justify-center transition-colors relative overflow-hidden
@@ -146,11 +139,6 @@ const KeyPreviewButton: React.FC<KeyPreviewButtonProps> = ({
                 isDarkMode={isDarkMode}
             />
         </div>
-        {shortcutNumber && (
-          <span className="absolute top-0.5 right-0.5 text-[10px] font-bold px-1 bg-neutral-300/80 dark:bg-neutral-600/80 text-neutral-700 dark:text-neutral-200 rounded-sm leading-none z-10">
-            {shortcutNumber}
-          </span>
-        )}
       </button>
     </div>
   );
@@ -160,7 +148,8 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
   keyPalette,
   activeKeyId,
   onKeySelect,
-  onAddKey,
+  onAddColor,
+  onAddBlock,
   onEditKey,
   onDeleteKey,
   onDuplicateKey,
@@ -176,7 +165,7 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
     setContextMenu(null);
 
     const menuItems: ContextMenuItem[] = [
-        { label: 'Edit Key', action: () => onEditKey(keyDef) },
+        { label: keyDef.colorCells ? 'Edit block' : 'Edit color', action: () => onEditKey(keyDef) },
         { label: 'Duplicate Key', action: () => onDuplicateKey(keyDef.id) },
     ];
 
@@ -192,21 +181,15 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
 
   const closeContextMenu = () => setContextMenu(null);
 
-  let shortcutCounter = 0;
-  const paletteWithShortcutsAndTally = keyPalette.map(keyDef => {
-    let shortcutNum: number | undefined = undefined;
-    if (shortcutCounter < 5) {
-      shortcutCounter++;
-      shortcutNum = shortcutCounter;
-    }
+  const paletteWithTally = keyPalette.map(keyDef => {
     const usage = keyUsageData.find(data => data.keyDef.id === keyDef.id);
-    return { ...keyDef, shortcutNumber: shortcutNum, tallyCount: usage?.count };
+    return { ...keyDef, tallyCount: usage?.count };
   });
 
   return (
     <div className="bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 p-1.5 flex items-end space-x-1.5 print:hidden overflow-x-auto overflow-y-hidden custom-scrollbar flex-shrink-0">
 
-      {paletteWithShortcutsAndTally.map((keyDefWithDetails) => (
+      {paletteWithTally.map((keyDefWithDetails) => (
         <div
           key={`key-item-${keyDefWithDetails.id}`}
           className="flex flex-col items-center flex-shrink-0"
@@ -218,7 +201,6 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
             onClick={() => onKeySelect(keyDefWithDetails.id)}
             onContextMenu={handleKeyContextMenu}
             allStitchSymbols={allStitchSymbols}
-            shortcutNumber={keyDefWithDetails.shortcutNumber}
             isDarkMode={isDarkMode}
           />
           {showKeyUsageTally && keyDefWithDetails.tallyCount && keyDefWithDetails.tallyCount > 0 ? (
@@ -238,16 +220,33 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
         <span className="text-[10px] mt-1 invisible mb-0.5 leading-none" aria-hidden="true">-</span>
       </div>
       <div className="flex flex-col items-center flex-shrink-0">
-        {/* Placeholder for Add button tally if needed, or just to align with keys */}
         <Button
             variant="ghost"
             size="sm"
-            onClick={onAddKey}
-            title="Add New Key"
+            onClick={onAddBlock}
+            title="Add reusable color block"
+            aria-label="Add reusable color block"
             className="p-2 h-[36px] w-[36px] flex-shrink-0 border border-dashed border-neutral-400 dark:border-neutral-500 hover:border-primary"
         >
-            <PlusIcon />
+            <GridIcon />
         </Button>
+        <span className="text-[10px] invisible mb-1 leading-none" aria-hidden="true">-</span>
+      </div>
+      <div className="flex flex-col items-center flex-shrink-0">
+        {/* Placeholder for Add button tally if needed, or just to align with keys */}
+        <label
+          title="Add color"
+          aria-label="Add color"
+          className="flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-md border border-dashed border-neutral-400 text-neutral-700 hover:border-primary hover:bg-neutral-200 dark:border-neutral-500 dark:text-neutral-300 dark:hover:bg-neutral-700"
+        >
+          <PlusIcon />
+          <input
+            type="color"
+            className="sr-only"
+            aria-label="Choose color to add"
+            onChange={(event) => onAddColor(event.target.value.toUpperCase())}
+          />
+        </label>
         <span className="text-[10px] invisible mb-1 leading-none" aria-hidden="true">-</span>
       </div>
 

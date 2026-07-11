@@ -13,6 +13,18 @@ export const THEME_DEFAULT_BACKGROUND_SENTINEL = 'theme_default_background';
 // New sentinel for symbol color matching theme's default stitch color
 export const THEME_DEFAULT_SYMBOL_COLOR_SENTINEL = 'theme_default_symbol_color';
 
+export const resolveKeyCellBackgroundColor = (
+  keyDef: { backgroundColor: string; colorCells?: (string | null)[][] },
+  rowOffset: number,
+  colOffset: number,
+  isDarkMode: boolean,
+): string => {
+  const raw = keyDef.colorCells?.[rowOffset]?.[colOffset] ?? keyDef.backgroundColor;
+  if (raw === TRANSPARENT_BACKGROUND_SENTINEL) return isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
+  if (raw === THEME_DEFAULT_BACKGROUND_SENTINEL) return isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
+  return raw;
+};
+
 export const DEFAULT_STITCH_SYMBOLS: StitchSymbolDef[] = [
   { id: 'empty', name: 'empty', abbreviation: '', svgContent: '<rect width="100%" height="100%" fill="transparent" />', description: 'Empty stitch' },
   { id: 'knit', name: 'knit', abbreviation: 'K', svgContent: '<line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="2.5"/ >', description: 'Knit stitch (vertical line)' },
@@ -57,9 +69,13 @@ export const GUTTER_SIZE = 30;
 export const KEY_ID_EMPTY = 'key_empty_no_stitch';
 export const KEY_ID_KNIT_DEFAULT = 'key_knit_default';
 export const KEY_ID_PURL_DEFAULT = 'key_purl_default';
+export const KEY_ID_COLOR_RED = 'key_color_red';
+export const KEY_ID_COLOR_GOLD = 'key_color_gold';
+export const KEY_ID_COLOR_TEAL = 'key_color_teal';
+export const KEY_ID_COLOR_NAVY = 'key_color_navy';
 
-export const MAX_KEY_WIDTH = 8;
-export const MAX_KEY_HEIGHT = 8;
+export const MAX_KEY_WIDTH = 24;
+export const MAX_KEY_HEIGHT = 60;
 export const ABBREVIATION_SKIP_SENTINEL = "__ABBR_SKIP__";
 
 // Explore gallery: repo where designs are submitted as GitHub Issues.
@@ -73,8 +89,8 @@ export const generateNewSheetId = () => `sheet_${Date.now()}_${Math.random().toS
 export const INITIAL_KEY_PALETTE: KeyDefinition[] = [
   {
     id: KEY_ID_KNIT_DEFAULT,
-    name: 'Knit',
-    abbreviation: 'K',
+    name: 'Natural',
+    abbreviation: null,
     width: 1,
     height: 1,
     backgroundColor: DEFAULT_CELL_COLOR_LIGHT,
@@ -82,22 +98,42 @@ export const INITIAL_KEY_PALETTE: KeyDefinition[] = [
     cells: [[null]],
   },
   {
-    id: KEY_ID_PURL_DEFAULT,
-    name: 'Purl',
-    abbreviation: 'P',
+    id: KEY_ID_COLOR_RED,
+    name: 'Red',
+    abbreviation: null,
     width: 1,
     height: 1,
-    backgroundColor: DEFAULT_CELL_COLOR_LIGHT,
+    backgroundColor: '#C2413A',
     symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
-    cells: [[{ type: 'text', value: '•' }]],
+    cells: [[null]],
   },
   {
-    id: KEY_ID_EMPTY,
-    name: 'No Stitch',
-    abbreviation: ABBREVIATION_SKIP_SENTINEL, // Explicitly skip this in legend
+    id: KEY_ID_COLOR_GOLD,
+    name: 'Gold',
+    abbreviation: null,
     width: 1,
     height: 1,
-    backgroundColor: TRANSPARENT_BACKGROUND_SENTINEL,
+    backgroundColor: '#D6A633',
+    symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
+    cells: [[null]],
+  },
+  {
+    id: KEY_ID_COLOR_TEAL,
+    name: 'Teal',
+    abbreviation: null,
+    width: 1,
+    height: 1,
+    backgroundColor: '#2F7775',
+    symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
+    cells: [[null]],
+  },
+  {
+    id: KEY_ID_COLOR_NAVY,
+    name: 'Navy',
+    abbreviation: null,
+    width: 1,
+    height: 1,
+    backgroundColor: '#24415D',
     symbolColor: DEFAULT_STITCH_COLOR_LIGHT,
     cells: [[null]],
   },
@@ -166,23 +202,6 @@ export const buildGridFromKeyPlacements = (
   }
   return newGrid;
 };
-
-export const resizeKeyPlacements = (
-  currentPlacements: KeyInstance[],
-  keyPalette: KeyDefinition[],
-  newRows: number,
-  newCols: number
-): KeyInstance[] => {
-  return currentPlacements.filter(placement => {
-    const keyDef = keyPalette.find(k => k.id === placement.keyId);
-    if (!keyDef) return false;
-    if (placement.anchor.y >= newRows || placement.anchor.x >= newCols) {
-      return false;
-    }
-    return true;
-  });
-};
-
 
 const initialKnitKeyPlacements: KeyInstance[] = [];
 // Grid is now initialized with Knit by createChartGrid, so initialKnitKeyPlacements can be empty
@@ -253,110 +272,6 @@ export const isPointInFootprint = (
     point.y >= footprint.minR &&
     point.y <= footprint.maxR
   );
-};
-
-export const insertRowInKeyPlacements = (
-  placements: KeyInstance[],
-  rowIndex: number,
-  oldGrid: ChartGrid, // Grid state *before* row insertion (conceptual)
-  _keyPalette: KeyDefinition[],
-  numCols: number
-): KeyInstance[] => {
-  const shiftedPlacements = placements.map(p => {
-    if (p.anchor.y >= rowIndex) {
-      return { ...p, anchor: { ...p.anchor, y: p.anchor.y + 1 } };
-    }
-    return p;
-  });
-
-  const newRowPlacements: KeyInstance[] = [];
-  // Determine the template row index from the oldGrid.
-  // If inserting at row 0, copy from what *was* row 0 (if exists).
-  // If inserting at row k > 0, copy from what *was* row k-1.
-  // oldGrid refers to the grid *before* any conceptual dimension change or placement shifting.
-  const templateRowIndexInOldGrid = rowIndex === 0
-    ? (oldGrid[0] ? 0 : -1) // Use oldGrid[0] if it exists, else -1 (no template)
-    : rowIndex - 1;
-
-  if (templateRowIndexInOldGrid >= 0 && oldGrid[templateRowIndexInOldGrid]) {
-    for (let c = 0; c < numCols; c++) {
-      const cellDataInOldGrid = oldGrid[templateRowIndexInOldGrid]?.[c];
-      // Use the keyId from the template cell, or default to knit if undefined/null
-      const keyIdToCopy = cellDataInOldGrid?.keyId || KEY_ID_KNIT_DEFAULT;
-      newRowPlacements.push({ anchor: { y: rowIndex, x: c }, keyId: keyIdToCopy });
-    }
-  } else { // No template row (e.g., inserting into an empty grid or at row 0 of 0-row grid)
-    for (let c = 0; c < numCols; c++) {
-      newRowPlacements.push({ anchor: { y: rowIndex, x: c }, keyId: KEY_ID_KNIT_DEFAULT });
-    }
-  }
-
-  return [...shiftedPlacements, ...newRowPlacements];
-};
-
-export const deleteRowInKeyPlacements = (placements: KeyInstance[], rowIndex: number, keyPalette: KeyDefinition[], _newNumRows: number): KeyInstance[] => {
-  return placements
-    .filter(p => {
-      const keyDef = keyPalette.find(k => k.id === p.keyId);
-      if (!keyDef) return false;
-      // Remove if anchor is in the deleted row
-      if (p.anchor.y === rowIndex) return false;
-      return true;
-    })
-    .map(p => {
-      if (p.anchor.y > rowIndex) {
-        return { ...p, anchor: { ...p.anchor, y: p.anchor.y - 1 } };
-      }
-      return p;
-    });
-};
-
-export const insertColInKeyPlacements = (
-  placements: KeyInstance[],
-  colIndex: number,
-  oldGrid: ChartGrid, // Grid state *before* column insertion
-  _keyPalette: KeyDefinition[],
-  numRows: number
-): KeyInstance[] => {
-  const shiftedPlacements = placements.map(p => {
-    if (p.anchor.x >= colIndex) {
-      return { ...p, anchor: { ...p.anchor, x: p.anchor.x + 1 } };
-    }
-    return p;
-  });
-
-  const newColPlacements: KeyInstance[] = [];
-  const templateColIndexInOldGrid = colIndex === 0
-    ? (oldGrid[0]?.[0] ? 0 : -1) // Check if oldGrid[0] and oldGrid[0][0] exist
-    : colIndex - 1;
-
-  for (let r = 0; r < numRows; r++) {
-    let keyIdToCopy = KEY_ID_KNIT_DEFAULT;
-    if (templateColIndexInOldGrid >= 0 && oldGrid[r]?.[templateColIndexInOldGrid]) {
-        const cellDataInOldGrid = oldGrid[r][templateColIndexInOldGrid];
-        if (cellDataInOldGrid?.keyId) {
-            keyIdToCopy = cellDataInOldGrid.keyId;
-        }
-    }
-    newColPlacements.push({ anchor: { y: r, x: colIndex }, keyId: keyIdToCopy });
-  }
-  return [...shiftedPlacements, ...newColPlacements];
-};
-
-export const deleteColInKeyPlacements = (placements: KeyInstance[], colIndex: number, keyPalette: KeyDefinition[], _newNumCols: number): KeyInstance[] => {
- return placements
-    .filter(p => {
-        const keyDef = keyPalette.find(k => k.id === p.keyId);
-        if (!keyDef) return false;
-        if (p.anchor.x === colIndex) return false; // Remove if anchor is in the deleted column
-        return true;
-    })
-    .map(p => {
-      if (p.anchor.x > colIndex) {
-        return { ...p, anchor: { ...p.anchor, x: p.anchor.x - 1 } };
-      }
-      return p;
-    });
 };
 
 export const hexToRgba = (hex: string, alpha: number): string => {

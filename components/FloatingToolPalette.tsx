@@ -25,8 +25,6 @@ interface ToolDefinition {
   tool?: Tool;
   label: string;
   icon: React.ReactNode;
-  hotkeyDescription?: string;
-  hotkeyDisplay?: string; // For visual badge
   action?: (() => void);
   disabled?: boolean;
 }
@@ -43,23 +41,23 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
 }, ref) => {
 
   const mainTools: ToolDefinition[] = [
-    { tool: Tool.Pen, label: 'Apply Key / Eraser', icon: <PenIcon />, hotkeyDescription: 'Use with selected key (Empty key for eraser)', hotkeyDisplay: 'A' },
+    { tool: Tool.Pen, label: 'Paint color', icon: <PenIcon /> },
   ];
 
   const selectAndClipboardTools: ToolDefinition[] = [
-    { tool: Tool.Select, label: 'Select Area', icon: <SelectIcon />, hotkeyDescription: 'Drag to select', hotkeyDisplay: 'S' },
-    { label: 'Copy', icon: <CopyIcon />, action: onCopySelection, disabled: !canCopy, hotkeyDescription: 'Ctrl+C' },
-    { label: 'Cut', icon: <CutIcon />, action: onCutSelection, disabled: !canCut, hotkeyDescription: 'Ctrl+X' },
-    { label: 'Paste', icon: <PasteIcon />, action: onPasteFromClipboard, disabled: !canPaste, hotkeyDescription: 'Ctrl+V' },
+    { tool: Tool.Select, label: 'Select area', icon: <SelectIcon /> },
+    { label: 'Copy', icon: <CopyIcon />, action: onCopySelection, disabled: !canCopy },
+    { label: 'Cut', icon: <CutIcon />, action: onCutSelection, disabled: !canCut },
+    { label: 'Paste', icon: <PasteIcon />, action: onPasteFromClipboard, disabled: !canPaste },
   ];
 
   const utilityTools: ToolDefinition[] = [
-    { tool: Tool.Move, label: 'Pan View', icon: <MoveIcon />, hotkeyDescription: 'Click & drag canvas / Middle mouse button', hotkeyDisplay: 'ESC' },
+    { tool: Tool.Move, label: 'Pan view', icon: <MoveIcon /> },
   ];
 
   const renderButtonGroup = (group: ToolDefinition[], groupName: string) => (
     <div className="flex items-center space-x-0.5" role="group" aria-label={groupName}>
-      {group.map(({ tool, label, icon, hotkeyDescription, hotkeyDisplay, action, disabled }) => (
+      {group.map(({ tool, label, icon, action, disabled }) => (
         <Button
           key={tool || label}
           variant={tool && activeTool === tool ? 'primary' : 'ghost'}
@@ -68,21 +66,13 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
             if (tool) onToolSelect(tool);
             else if (action) action();
           }}
-          title={hotkeyDescription ? `${label} (${hotkeyDescription})` : label}
+          title={label}
           className={`p-2 relative ${(tool && activeTool === tool) ? 'ring-2 ring-accent dark:ring-accent' : ''}`}
           aria-label={label}
           aria-pressed={tool ? activeTool === tool : undefined}
           disabled={disabled}
         >
           {icon}
-          {hotkeyDisplay && (
-            <span
-              className="absolute -bottom-1 -right-0.5 text-[9px] bg-neutral-400 dark:bg-neutral-600 text-neutral-50 dark:text-neutral-200 px-1 py-0.5 rounded-sm leading-none shadow"
-              aria-hidden="true"
-            >
-              {hotkeyDisplay}
-            </span>
-          )}
         </Button>
       ))}
     </div>

@@ -2,16 +2,10 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { MiniMapProps } from '../types';
 import {
-    DEFAULT_STITCH_COLOR_DARK,
-    DEFAULT_STITCH_COLOR_LIGHT,
-    KEY_ID_EMPTY,
-    DEFAULT_CELL_COLOR_DARK,
-    DEFAULT_CELL_COLOR_LIGHT,
-    GRID_LINE_COLOR_DARK,
-    GRID_LINE_COLOR_LIGHT,
-    TRANSPARENT_BACKGROUND_SENTINEL,
-    THEME_DEFAULT_BACKGROUND_SENTINEL,
-    THEME_DEFAULT_SYMBOL_COLOR_SENTINEL
+  DEFAULT_CELL_COLOR_DARK,
+  DEFAULT_CELL_COLOR_LIGHT,
+  KEY_ID_KNIT_DEFAULT,
+  resolveKeyCellBackgroundColor,
 } from '../constants';
 
 export const MiniMap: React.FC<MiniMapProps> = ({
@@ -26,23 +20,20 @@ export const MiniMap: React.FC<MiniMapProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const themeDefaultBg = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
-  const gridLineBg = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-
-  const defaultKeyDefForEmpty = keyPalette.find(k => k.id === KEY_ID_EMPTY) ||
-                      {
-                        id: KEY_ID_EMPTY, name: "No Stitch", width: 1, height: 1,
-                        backgroundColor: TRANSPARENT_BACKGROUND_SENTINEL,
-                        symbolColor: isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT
-                      };
-
-  const baseEmptyBgColorForMinimap = defaultKeyDefForEmpty.backgroundColor === TRANSPARENT_BACKGROUND_SENTINEL
-    ? gridLineBg
-    : (defaultKeyDefForEmpty.backgroundColor === THEME_DEFAULT_BACKGROUND_SENTINEL ? themeDefaultBg : defaultKeyDefForEmpty.backgroundColor);
+  const backgroundKeyDef = keyPalette.find(k => k.id === KEY_ID_KNIT_DEFAULT) || {
+    id: KEY_ID_KNIT_DEFAULT,
+    name: 'Natural',
+    width: 1,
+    height: 1,
+    backgroundColor: isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT,
+    symbolColor: '#000000',
+  };
 
 
   const getMinimapCellColor = useCallback((r_idx: number, c_idx: number): string => {
     let finalKeyId: string | null = null;
+    let keyPartRowOffset = 0;
+    let keyPartColOffset = 0;
     // Iterate from top visible layer downwards to find the keyId for the cell
     for (let i = layers.length - 1; i >= 0; i--) {
         const layer = layers[i];
@@ -53,56 +44,28 @@ export const MiniMap: React.FC<MiniMapProps> = ({
             const keyDefOnLayer = keyPalette.find(k => k.id === cellInGrid.keyId);
             if (cellInGrid.keyId !== null && keyDefOnLayer && (cellInGrid.isAnchorCellForMxN || (keyDefOnLayer.width === 1 && keyDefOnLayer.height === 1))) {
                 finalKeyId = cellInGrid.keyId;
+                keyPartRowOffset = cellInGrid.keyPartRowOffset ?? 0;
+                keyPartColOffset = cellInGrid.keyPartColOffset ?? 0;
                 break;
             } else if (cellInGrid.keyId !== null && keyDefOnLayer && !cellInGrid.isAnchorCellForMxN && (keyDefOnLayer.width > 1 || keyDefOnLayer.height > 1)){
                  // This is part of an MxN symbol, use its main keyId
                 finalKeyId = cellInGrid.keyId;
+                keyPartRowOffset = cellInGrid.keyPartRowOffset ?? 0;
+                keyPartColOffset = cellInGrid.keyPartColOffset ?? 0;
                 break;
             }
         }
     }
 
-    const keyDef = finalKeyId ? (keyPalette.find(k => k.id === finalKeyId) || defaultKeyDefForEmpty) : defaultKeyDefForEmpty;
+    const keyDef = finalKeyId ? (keyPalette.find(k => k.id === finalKeyId) || backgroundKeyDef) : backgroundKeyDef;
 
-    let cellBgColor: string;
-    if (keyDef.backgroundColor === TRANSPARENT_BACKGROUND_SENTINEL) {
-      cellBgColor = gridLineBg;
-    } else if (keyDef.backgroundColor === THEME_DEFAULT_BACKGROUND_SENTINEL) {
-      cellBgColor = themeDefaultBg;
-    } else {
-      cellBgColor = keyDef.backgroundColor;
-    }
-
-    const keyHasRenderableContent = (keyDef.cells && keyDef.cells.flat().some(cell => cell !== null)) || (keyDef.lines && keyDef.lines.length > 0);
-
-    if (keyHasRenderableContent && cellBgColor === baseEmptyBgColorForMinimap && keyDef.id !== KEY_ID_EMPTY) {
-        let symbolBaseColor = keyDef.symbolColor;
-        if (symbolBaseColor === THEME_DEFAULT_SYMBOL_COLOR_SENTINEL) {
-            symbolBaseColor = isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT;
-        }
-
-        if (symbolBaseColor.startsWith('#') && (symbolBaseColor.length === 7 || symbolBaseColor.length === 4)) {
-            let rHex, gHex, bHex;
-            if (symbolBaseColor.length === 4) {
-                rHex = symbolBaseColor[1] + symbolBaseColor[1];
-                gHex = symbolBaseColor[2] + symbolBaseColor[2];
-                bHex = symbolBaseColor[3] + symbolBaseColor[3];
-            } else {
-                rHex = symbolBaseColor.substring(1, 3);
-                gHex = symbolBaseColor.substring(3, 5);
-                bHex = symbolBaseColor.substring(5, 7);
-            }
-            const rCVal = parseInt(rHex, 16);
-            const gCVal = parseInt(gHex, 16);
-            const bCVal = parseInt(bHex, 16);
-            // Use a noticeable alpha for the symbol color to tint the cell
-            return `rgba(${rCVal},${gCVal},${bCVal},0.5)`;
-        }
-        // If symbol color is not a hex (e.g. a named color, less likely here), fall back to bg or a default tint
-        return cellBgColor; // Or a default tint if symbolBaseColor is unusual
-    }
-    return cellBgColor;
-  }, [layers, keyPalette, defaultKeyDefForEmpty, isDarkMode, gridLineBg, themeDefaultBg, baseEmptyBgColorForMinimap]);
+    return resolveKeyCellBackgroundColor(
+      keyDef,
+      keyPartRowOffset,
+      keyPartColOffset,
+      isDarkMode,
+    );
+  }, [layers, keyPalette, backgroundKeyDef, isDarkMode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -209,9 +172,6 @@ export const MiniMap: React.FC<MiniMapProps> = ({
             Mini Map
         </h3>
         <canvas ref={canvasRef} className="block" />
-        <p className="absolute bottom-1 left-1 text-xs text-neutral-600 dark:text-neutral-300 italic select-none pointer-events-none px-1 py-0.5 rounded bg-transparent">
-            Click to pan.
-        </p>
     </div>
   );
 };

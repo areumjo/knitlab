@@ -3,8 +3,10 @@ import { ChartState, StitchSymbolDef, Tool, Point, SelectionRect, ContextMenuIte
 import { ContextMenu } from './ContextMenu';
 import {
     CELL_SIZE, GRID_LINE_COLOR_LIGHT, GRID_LINE_COLOR_DARK, KEY_ID_EMPTY,
-    DEFAULT_CELL_COLOR_LIGHT, DEFAULT_CELL_COLOR_DARK, GUTTER_SIZE, TRANSPARENT_BACKGROUND_SENTINEL,
-    THEME_DEFAULT_BACKGROUND_SENTINEL, DEFAULT_STITCH_COLOR_LIGHT, DEFAULT_STITCH_COLOR_DARK
+    GUTTER_SIZE, KEY_ID_KNIT_DEFAULT,
+    DEFAULT_CELL_COLOR_LIGHT, DEFAULT_CELL_COLOR_DARK,
+    DEFAULT_STITCH_COLOR_LIGHT, DEFAULT_STITCH_COLOR_DARK,
+    resolveKeyCellBackgroundColor
 } from '../constants';
 import { PlusIcon, XIcon } from './Icon';
 import { drawStitchSymbolOnCanvas } from '../canvasUtils';
@@ -98,9 +100,9 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; items: ContextMenuItem[]; } | null>(null);
 
   const scaledCellSize = CELL_SIZE * zoomLevel;
-  const noStitchKeyDef = keyPalette.find(k => k.id === KEY_ID_EMPTY) ||
-    { id: KEY_ID_EMPTY, name: "No Stitch", width: 1, height: 1,
-      backgroundColor: TRANSPARENT_BACKGROUND_SENTINEL,
+  const backgroundKeyDef = keyPalette.find(k => k.id === KEY_ID_KNIT_DEFAULT) ||
+    { id: KEY_ID_KNIT_DEFAULT, name: "Natural", width: 1, height: 1,
+      backgroundColor: isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT,
       symbolColor: isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT
     };
 
@@ -149,11 +151,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
 
     ctx.clearRect(cellX, cellY, scaledCellSize, scaledCellSize);
 
-    let bgColor = keyDefToApply.backgroundColor;
-    if (bgColor === TRANSPARENT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-    else if (bgColor === THEME_DEFAULT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
-
-    ctx.fillStyle = bgColor;
+    ctx.fillStyle = resolveKeyCellBackgroundColor(keyDefToApply, 0, 0, isDarkMode);
     ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
 
     // Grid lines first, all four sides — the original render painted only
@@ -186,7 +184,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
 
     ctx.restore();
 
-  }, [activeLayer, keyPalette, scaledCellSize, isDarkMode, allSymbols, gutterLeft, gutterTop, fixedGridLineColor, viewOffset, noStitchKeyDef]);
+  }, [activeLayer, keyPalette, scaledCellSize, isDarkMode, allSymbols, gutterLeft, gutterTop, fixedGridLineColor, viewOffset]);
 
 
   const drawBaseLayer = useCallback(async () => {
@@ -220,13 +218,14 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         const cellX = gutterLeft + c * scaledCellSize;
         const cellY = gutterTop + r * scaledCellSize;
         const cellData = activeLayer.grid[r]?.[c];
-        const keyDef = cellData?.keyId ? (keyPalette.find(k => k.id === cellData.keyId) || noStitchKeyDef) : noStitchKeyDef;
+        const keyDef = cellData?.keyId ? (keyPalette.find(k => k.id === cellData.keyId) || backgroundKeyDef) : backgroundKeyDef;
 
-        let bgColor = keyDef.backgroundColor;
-        if (bgColor === TRANSPARENT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-        else if (bgColor === THEME_DEFAULT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
-
-        ctx.fillStyle = bgColor;
+        ctx.fillStyle = resolveKeyCellBackgroundColor(
+          keyDef,
+          cellData?.keyPartRowOffset ?? 0,
+          cellData?.keyPartColOffset ?? 0,
+          isDarkMode,
+        );
         ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
       }
     }
@@ -264,7 +263,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         const cellX = gutterLeft + c * scaledCellSize;
         const cellY = gutterTop + r * scaledCellSize;
         const cellData = activeLayer.grid[r]?.[c];
-        const keyDef = cellData?.keyId ? (keyPalette.find(k => k.id === cellData.keyId) || noStitchKeyDef) : noStitchKeyDef;
+        const keyDef = cellData?.keyId ? (keyPalette.find(k => k.id === cellData.keyId) || backgroundKeyDef) : backgroundKeyDef;
 
         if (keyDef && keyDef.id !== KEY_ID_EMPTY) {
            symbolDrawingPromises.push(drawStitchSymbolOnCanvas(
@@ -314,7 +313,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     ctx.restore();
   }, [
       activeLayer, keyPalette, allSymbols, isDarkMode, zoomLevel, viewOffset, canvasSize, rows, cols,
-      displaySettings, orientation, noStitchKeyDef, scaledCellSize, actualGridContentWidth, actualGridContentHeight,
+      displaySettings, orientation, backgroundKeyDef, scaledCellSize, actualGridContentWidth, actualGridContentHeight,
       gutterLeft, gutterTop, gutterRight, gutterBottom, fixedGridLineColor
   ]);
 
@@ -370,10 +369,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
             if (cellR >= 0 && cellR < rows && cellC >= 0 && cellC < cols) {
               const cellX = gutterLeft + cellC * scaledCellSize;
               const cellY = gutterTop + cellR * scaledCellSize;
-              let bgColor = keyDef.backgroundColor;
-              if (bgColor === TRANSPARENT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-              else if (bgColor === THEME_DEFAULT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
-              ctx.fillStyle = bgColor;
+              ctx.fillStyle = resolveKeyCellBackgroundColor(keyDef, rOffset, cOffset, isDarkMode);
               ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
               if (keyDef.id !== KEY_ID_EMPTY) {
                  symbolDrawingPromises.push(drawStitchSymbolOnCanvas(
@@ -405,10 +401,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
                     if (cellR >= 0 && cellR < rows && cellC >= 0 && cellC < cols) {
                         const cellX = gutterLeft + cellC * scaledCellSize;
                         const cellY = gutterTop + cellR * scaledCellSize;
-                         let bgColor = keyDef.backgroundColor;
-                        if (bgColor === TRANSPARENT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-                        else if (bgColor === THEME_DEFAULT_BACKGROUND_SENTINEL) bgColor = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
-                        ctx.fillStyle = bgColor;
+                        ctx.fillStyle = resolveKeyCellBackgroundColor(keyDef, rOffset, cOffset, isDarkMode);
                         ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
                         if (keyDef.id !== KEY_ID_EMPTY) {
                             pasteSymbolPromises.push(drawStitchSymbolOnCanvas(
@@ -515,10 +508,13 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
                         const chartR = normSel.start.y + rOffset;
                         const chartC = normSel.start.x + cOffset;
                         const cellInGrid = activeLayer.grid[chartR]?.[chartC];
-                        if (cellInGrid?.keyId) {
+                        if (cellInGrid?.keyId && cellInGrid.keyId !== KEY_ID_KNIT_DEFAULT) {
                             const keyDef = keyPalette.find(k => k.id === cellInGrid.keyId);
                             if (keyDef) {
                                  if (cellInGrid.isAnchorCellForMxN || (keyDef.width===1 && keyDef.height===1)){
+                                     const fitsSelection = cOffset + keyDef.width <= selectionWidth &&
+                                         rOffset + keyDef.height <= selectionHeight;
+                                     if (!fitsSelection) continue;
                                      if (!relativeKeyInstances.some(inst => inst.keyId === cellInGrid.keyId && inst.anchor.x === cOffset && inst.anchor.y === rOffset)) {
                                          relativeKeyInstances.push({
                                             anchor: { y: rOffset, x: cOffset },
@@ -706,17 +702,17 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         }
     } else if (selection) {
         items.push(
-            { label: "Copy (Ctrl+C)", action: onCopySelection, disabled: !selection },
-            { label: "Cut (Ctrl+X)", action: onCutSelection, disabled: !selection },
-            { label: "Paste (Ctrl+V)", action: onPasteFromClipboard, disabled: !canPaste }
+            { label: "Copy", action: onCopySelection, disabled: !selection },
+            { label: "Cut", action: onCutSelection, disabled: !selection },
+            { label: "Paste", action: onPasteFromClipboard, disabled: !canPaste }
         );
         items.push({ isSeparator: true });
-        items.push({ label: "Apply Active Key to Selection", action: onRequestApplyActiveKeyToSelection, disabled: !activeKeyId });
-        items.push({ label: `Apply "No Stitch" to Selection`, action: onRequestClearAllInSelection });
+        items.push({ label: "Fill selection", action: onRequestApplyActiveKeyToSelection, disabled: !activeKeyId });
+        items.push({ label: "Clear selection", action: onRequestClearAllInSelection });
         items.push({ isSeparator: true });
         items.push({ label: "Deselect Area", action: () => onSelectionChange(null, false, undefined) });
     } else {
-        items.push({ label: "Paste (Ctrl+V)", action: onPasteFromClipboard, disabled: !canPaste });
+        items.push({ label: "Paste", action: onPasteFromClipboard, disabled: !canPaste });
     }
 
     if (items.length > 0 && items[items.length-1]?.isSeparator) items.pop();
@@ -766,7 +762,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
       onMouseMove={handleCanvasMouseMove}
       onMouseDown={handleCanvasMouseDown}
       onMouseLeave={() => { onHoveredCellChange(null); setHoveredGutterInfo(null); if(isPenDrawing) {setIsPenDrawing(false); onPenDragSessionEnd();} }}
-      aria-label="Knitting Chart Canvas"
+      aria-label="Colorwork chart canvas"
       role="application"
     >
       <canvas ref={baseCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} aria-hidden="true" />

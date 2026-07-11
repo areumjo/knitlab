@@ -1,9 +1,9 @@
 import React from 'react';
-import { StitchSymbolDisplayProps } from '../types';
-import { DEFAULT_STITCH_SYMBOLS, THEME_DEFAULT_SYMBOL_COLOR_SENTINEL, DEFAULT_STITCH_COLOR_DARK, DEFAULT_STITCH_COLOR_LIGHT } from '../constants';
+import { StitchSymbolDef, StitchSymbolDisplayProps } from '../types';
+import { THEME_DEFAULT_SYMBOL_COLOR_SENTINEL, DEFAULT_STITCH_COLOR_DARK, DEFAULT_STITCH_COLOR_LIGHT } from '../constants';
 
 const getSymbolSVG = (
-  symbolDef: typeof DEFAULT_STITCH_SYMBOLS[number],
+  symbolDef: StitchSymbolDef,
   cellSize: number,
   color: string
 ): React.ReactElement | null => {
@@ -42,7 +42,7 @@ const getSymbolSVG = (
 
 export const StitchSymbolDisplay: React.FC<StitchSymbolDisplayProps> = ({
   keyDef,
-  allStitchSymbols = DEFAULT_STITCH_SYMBOLS,
+  allStitchSymbols = [],
   className = '',
   cellSize = 24,
   keyPartRowOffset,
