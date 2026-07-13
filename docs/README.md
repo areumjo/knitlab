@@ -1,11 +1,12 @@
-# Knitlab Developer Documentation
+# KnitLab documentation
 
-This directory contains the technical documentation for the Knitlab codebase. It is intended to help engineers understand the project's architecture, features, and development process.
+KnitLab is a static, browser-only colorwork editor deployed to GitHub
+Pages. These documents are the current product and engineering contract:
 
-### Table of Contents
+- [`COLORWORK_PRODUCT.md`](./COLORWORK_PRODUCT.md): product boundary and gates
+- [`COLORWORK_CHART_V1.md`](./COLORWORK_CHART_V1.md): Studio interchange format
+- [`DEVELOPMENT.md`](./DEVELOPMENT.md): local workflow and code orientation
+- [`SERIALIZATION.md`](./SERIALIZATION.md): editable `.knitlab` source format
 
-*   **[Codebase Overview](./OVERVIEW.md):** A high-level view of the project's architecture, state management, and core concepts. Start here to understand how the application is structured.
-
-*   **[Feature Breakdown](./FEATURES.md):** A guide that maps user-facing features to the specific files and components responsible for their implementation. Use this to quickly locate relevant code.
-
-*   **[Development Guide](./DEVELOPMENT.md):** A quick-start guide for setting up the development environment, running the project, and understanding the core development patterns.
+Retired symbol, instructions, publishing, and Explore documentation remains in
+Git history rather than in the active product docs.

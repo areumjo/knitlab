@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://areumjo.github.io/knitlab/schemas/colorwork-chart-v1.schema.json",
+  "title": "ColorworkChartV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "version",
+    "width",
+    "height",
+    "rowNumbering",
+    "palette",
+    "cells"
+  ],
+  "properties": {
+    "kind": { "const": "knitlab-colorwork-chart" },
+    "version": { "const": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "width": { "type": "integer", "minimum": 1 },
+    "height": { "type": "integer", "minimum": 1 },
+    "rowNumbering": { "enum": ["bottom-up", "top-down"] },
+    "palette": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "hex"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "hex": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+        }
+      }
+    },
+    "cells": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

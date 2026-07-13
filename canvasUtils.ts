@@ -1,6 +1,6 @@
 
 import { KeyDefinition, StitchSymbolDef } from './types';
-import { DEFAULT_STITCH_SYMBOLS, THEME_DEFAULT_SYMBOL_COLOR_SENTINEL, DEFAULT_STITCH_COLOR_DARK, DEFAULT_STITCH_COLOR_LIGHT } from './constants';
+import { THEME_DEFAULT_SYMBOL_COLOR_SENTINEL, DEFAULT_STITCH_COLOR_DARK, DEFAULT_STITCH_COLOR_LIGHT } from './constants';
 
 interface SymbolCacheEntry {
   canvas: HTMLCanvasElement;
@@ -73,7 +73,7 @@ async function drawSvgToOffscreenCanvas(
 export async function drawStitchSymbolOnCanvas(
   ctx: CanvasRenderingContext2D,
   keyDef: KeyDefinition,
-  allSymbols: StitchSymbolDef[] = DEFAULT_STITCH_SYMBOLS,
+  allSymbols: StitchSymbolDef[] = [],
   targetX: number, // Top-left X of the *grid cell* on the main canvas
   targetY: number, // Top-left Y of the *grid cell* on the main canvas
   cellSize: number, // Size of one grid cell on the main canvas

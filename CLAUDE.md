@@ -4,9 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Knitlab is a browser-based knitting chart design tool - think "Figma for knitting". It's a static-first SPA (no backend) that runs entirely in the browser, deployed to GitHub Pages. Users manually save/load their work via JSON export/import.
+KnitLab is a colorwork-only chart editor. It is a static SPA with no
+backend, deployed to GitHub Pages. The product owns exact cell colors,
+multi-color blocks, image reduction, `.knitlab` persistence, browser autosave,
+and exact JSON/PNG export. Do not add hand-knit symbols, instructions,
+garments, or machine behavior to the product surface.
 
-**Tech Stack:** React + TypeScript, Vite, Tailwind CSS (via CDN in index.html)
+**Tech Stack:** React + TypeScript, Vite, Tailwind CSS (bundled via PostCSS, see `tailwind.config.cjs`)
 
 ## Commands
 
@@ -16,6 +20,10 @@ npm install        # Install dependencies
 npm run dev        # Start dev server (usually http://localhost:5173)
 npm run build      # Build for production
 npm run preview    # Preview production build
+npm run typecheck  # TypeScript only
+npm test           # Focused contract/persistence tests
+npm run test:e2e  # Desktop/mobile browser acceptance
+npm run verify     # TypeScript + tests + production build
 ```
 
 **Deployment:** Pushing to `main` triggers automatic deployment to GitHub Pages via `.github/workflows/deploy.yml`
@@ -26,7 +34,7 @@ npm run preview    # Preview production build
 
 The entire application follows a **single state object + top-down flow** pattern:
 
-1. **All state lives in `App.tsx`** - managed by the custom `useChartHistory` hook
+1. **All editor state lives in `App.tsx`** - managed by the custom `useChartHistory` hook
 2. **State updates must use the correct method:**
    - `recordChange(...)` - for undoable changes (almost everything)
    - `updateCurrentState(...)` - for transient UI changes that shouldn't create history entries (e.g., theme toggle)
@@ -53,9 +61,11 @@ Start here to understand the codebase:
 2. **`App.tsx`** - Root component, owns all state and feature logic (large file ~2000 lines)
 3. **`hooks/useChartHistory.ts`** - The state management engine powering undo/redo
 4. **`components/KnitCanvas.tsx`** - Most complex component, handles canvas rendering and user input
-5. **`components/KeyEditorModal.tsx`** - Self-contained complex UI for creating/editing custom stitch symbols
-6. **`services/exportService.ts`** - Handles JPG export by rendering to off-screen canvas
-7. **`canvasUtils.ts`** - Performance optimizations via symbol caching
+5. **`components/BlockEditorModal.tsx`** - Reusable multi-color tile authoring
+6. **`services/colorworkExportService.ts`** - Flattened JSON + exact PNG export
+7. **`lib/colorworkTools.ts`** - Pure drawing-tool geometry
+8. **`canvasUtils.ts`** - Performance optimizations via symbol caching
+9. **`lib/colorwork-chart-v1.ts`** - Untrusted-file parser for the Studio handoff
 
 ### Important Patterns
 
@@ -77,7 +87,10 @@ currentState.sheets = updatedSheets;
 
 ## Development Notes
 
-- **Styling:** All styling uses Tailwind CSS. Config is in `index.html` (not a separate tailwind.config.js)
-- **No tests:** The project currently has no test suite
-- **No backend:** All processing (image quantization, instruction generation, exports) happens client-side
-- **Data persistence:** Users manually export/import JSON files - there's no auto-save or cloud storage
+- **Styling:** All styling uses Tailwind CSS, bundled via PostCSS. Config is in `tailwind.config.cjs`
+- **No backend:** image quantization, persistence, and exports all run client-side
+- **Data persistence:** browser autosave plus explicit `.knitlab` download/open
+- **Drawing previews:** keep gesture previews local to `KnitCanvas`; commit once
+  through `colorworkMutationService` on pointer release
+- **Interchange:** keep `schemas/colorwork-chart-v1.schema.json` and the shared
+  four-color fixture byte-identical with the Kniterate Studio copy

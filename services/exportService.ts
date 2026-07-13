@@ -8,10 +8,9 @@ import {
   DEFAULT_CELL_COLOR_DARK,
   DEFAULT_STITCH_COLOR_LIGHT,
   DEFAULT_STITCH_COLOR_DARK,
-  TRANSPARENT_BACKGROUND_SENTINEL,
-  THEME_DEFAULT_BACKGROUND_SENTINEL,
   THEME_DEFAULT_SYMBOL_COLOR_SENTINEL,
   KEY_ID_EMPTY,
+  resolveKeyCellBackgroundColor,
 } from '../constants';
 
 const COPYRIGHT_TEXT_LINE1 = "© 2026 Areum Knits. All rights reserved.";
@@ -110,13 +109,12 @@ export async function generateChartJpeg(
         const keyDef = cellData?.keyId ? keyPalette.find(k => k.id === cellData.keyId) : keyPalette.find(k => k.id === KEY_ID_EMPTY);
         
         if (keyDef) {
-          let bgColor = keyDef.backgroundColor;
-          if (bgColor === TRANSPARENT_BACKGROUND_SENTINEL) {
-            bgColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-          } else if (bgColor === THEME_DEFAULT_BACKGROUND_SENTINEL) {
-            bgColor = isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT;
-          }
-          ctx.fillStyle = bgColor;
+          ctx.fillStyle = resolveKeyCellBackgroundColor(
+            keyDef,
+            cellData?.keyPartRowOffset ?? 0,
+            cellData?.keyPartColOffset ?? 0,
+            isDarkMode,
+          );
           ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
           
           let symbolColor = keyDef.symbolColor;

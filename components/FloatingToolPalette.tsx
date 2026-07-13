@@ -2,7 +2,7 @@
 import React from 'react';
 import { Tool } from '../types';
 import { Button } from './Button';
-import { PenIcon, SelectIcon, MoveIcon, CopyIcon, CutIcon, PasteIcon } from './Icon';
+import { PenIcon, LineIcon, RectangleIcon, FillIcon, SelectIcon, MoveIcon, CopyIcon, CutIcon, PasteIcon } from './Icon';
 
 interface FloatingToolPaletteProps {
   activeTool: Tool;
@@ -19,14 +19,13 @@ interface FloatingToolPaletteProps {
   canCopy: boolean;
   canCut: boolean;
   canPaste: boolean;
+  activeKeyIsSolid: boolean;
 }
 
 interface ToolDefinition {
   tool?: Tool;
   label: string;
   icon: React.ReactNode;
-  hotkeyDescription?: string;
-  hotkeyDisplay?: string; // For visual badge
   action?: (() => void);
   disabled?: boolean;
 }
@@ -40,26 +39,30 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
     canCopy,
     canCut,
     canPaste,
+    activeKeyIsSolid,
 }, ref) => {
 
   const mainTools: ToolDefinition[] = [
-    { tool: Tool.Pen, label: 'Apply Key / Eraser', icon: <PenIcon />, hotkeyDescription: 'Use with selected key (Empty key for eraser)', hotkeyDisplay: 'A' },
+    { tool: Tool.Pen, label: 'Paint color', icon: <PenIcon /> },
+    { tool: Tool.Line, label: 'Draw line', icon: <LineIcon />, disabled: !activeKeyIsSolid },
+    { tool: Tool.Rectangle, label: 'Draw rectangle', icon: <RectangleIcon />, disabled: !activeKeyIsSolid },
+    { tool: Tool.Fill, label: 'Flood fill', icon: <FillIcon />, disabled: !activeKeyIsSolid },
   ];
 
-  const selectAndClipboardTools: ToolDefinition[] = [
-    { tool: Tool.Select, label: 'Select Area', icon: <SelectIcon />, hotkeyDescription: 'Drag to select', hotkeyDisplay: 'S' },
-    { label: 'Copy', icon: <CopyIcon />, action: onCopySelection, disabled: !canCopy, hotkeyDescription: 'Ctrl+C' },
-    { label: 'Cut', icon: <CutIcon />, action: onCutSelection, disabled: !canCut, hotkeyDescription: 'Ctrl+X' },
-    { label: 'Paste', icon: <PasteIcon />, action: onPasteFromClipboard, disabled: !canPaste, hotkeyDescription: 'Ctrl+V' },
+  const selectionTools: ToolDefinition[] = [
+    { tool: Tool.Select, label: 'Select area', icon: <SelectIcon /> },
+    { tool: Tool.Move, label: 'Pan view', icon: <MoveIcon /> },
   ];
 
-  const utilityTools: ToolDefinition[] = [
-    { tool: Tool.Move, label: 'Pan View', icon: <MoveIcon />, hotkeyDescription: 'Click & drag canvas / Middle mouse button', hotkeyDisplay: 'ESC' },
+  const clipboardTools: ToolDefinition[] = [
+    { label: 'Copy', icon: <CopyIcon />, action: onCopySelection, disabled: !canCopy },
+    { label: 'Cut', icon: <CutIcon />, action: onCutSelection, disabled: !canCut },
+    { label: 'Paste', icon: <PasteIcon />, action: onPasteFromClipboard, disabled: !canPaste },
   ];
 
   const renderButtonGroup = (group: ToolDefinition[], groupName: string) => (
-    <div className="flex items-center space-x-0.5" role="group" aria-label={groupName}>
-      {group.map(({ tool, label, icon, hotkeyDescription, hotkeyDisplay, action, disabled }) => (
+    <div className="flex items-center gap-0.5" role="group" aria-label={groupName}>
+      {group.map(({ tool, label, icon, action, disabled }) => (
         <Button
           key={tool || label}
           variant={tool && activeTool === tool ? 'primary' : 'ghost'}
@@ -68,35 +71,27 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
             if (tool) onToolSelect(tool);
             else if (action) action();
           }}
-          title={hotkeyDescription ? `${label} (${hotkeyDescription})` : label}
-          className={`p-2 relative ${(tool && activeTool === tool) ? 'ring-2 ring-accent dark:ring-accent' : ''}`}
+          title={label}
+          className={`relative h-10 w-10 flex-shrink-0 p-2 ${(tool && activeTool === tool) ? 'shadow-sm ring-1 ring-inset ring-primary-dark' : ''}`}
           aria-label={label}
           aria-pressed={tool ? activeTool === tool : undefined}
           disabled={disabled}
         >
           {icon}
-          {hotkeyDisplay && (
-            <span
-              className="absolute -bottom-1 -right-0.5 text-[9px] bg-neutral-400 dark:bg-neutral-600 text-neutral-50 dark:text-neutral-200 px-1 py-0.5 rounded-sm leading-none shadow"
-              aria-hidden="true"
-            >
-              {hotkeyDisplay}
-            </span>
-          )}
         </Button>
       ))}
     </div>
   );
 
   return (
-    <div ref={ref} className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 print:hidden">
-      <div className="flex flex-col items-center space-y-1">
-        <div className="flex items-center space-x-1 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-lg shadow-xl border border-neutral-300 dark:border-neutral-700">
+    <div ref={ref} className="safe-bottom fixed inset-x-0 bottom-0 z-20 overflow-x-auto px-2 print:hidden md:bottom-4 md:flex md:justify-center">
+      <div className="flex w-max flex-col items-center gap-1">
+        <div className="flex items-center gap-1 rounded-md border border-neutral-300 bg-white p-1.5 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
           {renderButtonGroup(mainTools, "Main Tools")}
-          <div className="h-8 border-l border-neutral-300 dark:border-neutral-600 mx-1"></div>
-          {renderButtonGroup(selectAndClipboardTools, "Select and Clipboard Tools")}
-          <div className="h-8 border-l border-neutral-300 dark:border-neutral-600 mx-1"></div>
-          {renderButtonGroup(utilityTools, "Utility Tools")}
+          <div className="mx-1 h-7 border-l border-neutral-300 dark:border-neutral-600" />
+          {renderButtonGroup(selectionTools, "Selection and View Tools")}
+          <div className="mx-1 h-7 border-l border-neutral-300 dark:border-neutral-600" />
+          {renderButtonGroup(clipboardTools, "Clipboard Tools")}
         </div>
       </div>
     </div>

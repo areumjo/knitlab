@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { ProcessedImageData } from '../types';
@@ -105,6 +105,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
   const sourceCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const selectionBoxRef = useRef<HTMLDivElement>(null);
+  const cropInstructionsId = useId();
 
   const [displayScale, setDisplayScale] = useState(1);
   const [selection, setSelection] = useState({ x: 50, y: 50, width: 100, height: 100 });
@@ -286,6 +287,34 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
     setIsResizingSelection(null);
     if (selectionBoxRef.current) selectionBoxRef.current.style.cursor = 'move';
   }, []);
+
+  const handleSelectionKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!displayCanvasRef.current) return;
+    const deltas: Record<string, { x: number; y: number }> = {
+      ArrowLeft: { x: -1, y: 0 },
+      ArrowRight: { x: 1, y: 0 },
+      ArrowUp: { x: 0, y: -1 },
+      ArrowDown: { x: 0, y: 1 },
+    };
+    const delta = deltas[event.key];
+    if (!delta) return;
+    event.preventDefault();
+    const step = event.altKey ? 1 : 5;
+    setSelection((current) => {
+      if (event.shiftKey) {
+        return {
+          ...current,
+          width: Math.max(10, Math.min(displayCanvasRef.current!.width - current.x, current.width + delta.x * step)),
+          height: Math.max(10, Math.min(displayCanvasRef.current!.height - current.y, current.height + delta.y * step)),
+        };
+      }
+      return {
+        ...current,
+        x: Math.max(0, Math.min(displayCanvasRef.current!.width - current.width, current.x + delta.x * step)),
+        y: Math.max(0, Math.min(displayCanvasRef.current!.height - current.height, current.y + delta.y * step)),
+      };
+    });
+  };
 
   useEffect(() => {
     document.addEventListener('mousemove', handleDocumentMouseMove);
@@ -601,6 +630,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
               <input
                 type="file"
                 id="image-loader-modal"
+                name="source-image"
                 accept="image/*"
                 onChange={handleImageUpload}
                 className="sr-only"
@@ -628,6 +658,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                 <input
                   type="file"
                   id="image-loader-modal"
+                  name="replacement-image"
                   accept="image/*"
                   onChange={handleImageUpload}
                   className="sr-only"
@@ -646,13 +677,20 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
               <div
                 ref={selectionBoxRef}
                 onMouseDown={handleSelectionMouseDown}
-                className="absolute border-2 border-dashed border-red-500 box-border cursor-move"
+                onKeyDown={handleSelectionKeyDown}
+                role="group"
+                tabIndex={0}
+                aria-label="Crop selection"
+                aria-describedby={cropInstructionsId}
+                className="absolute box-border cursor-move border-2 border-dashed border-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 style={{ display: 'none' }}
               >
+                <span id={cropInstructionsId} className="sr-only">Use arrow keys to move the crop. Hold Shift and use arrow keys to resize. Hold Alt for one-pixel steps.</span>
                 {['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'].map(handle => (
                   <div
                     key={handle}
                     onMouseDown={(e) => handleResizeHandleMouseDown(e, handle)}
+                    aria-hidden="true"
                     className={`absolute w-2.5 h-2.5 bg-blue-500 border border-white box-border
                       ${handle.includes('n') ? 'top-[-5px]' : ''} ${handle.includes('s') ? 'bottom-[-5px]' : ''} ${handle.includes('w') ? 'left-[-5px]' : ''} ${handle.includes('e') ? 'right-[-5px]' : ''}
                       ${(handle === 'n' || handle === 's') ? 'left-1/2 -translate-x-1/2 cursor-ns-resize' : ''}
@@ -678,6 +716,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
               <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                 <input
                   type="checkbox"
+                  name="keep-cells-square"
                   checked={matchAspectToSelection}
                   onChange={e => setMatchAspectToSelection(e.target.checked)}
                   className="rounded"
@@ -689,6 +728,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                   <label htmlFor="grid-cols-modal" className="block text-xs text-neutral-600 dark:text-neutral-400 mb-1">Columns</label>
                   <input
                     type="number" id="grid-cols-modal" value={gridConfig.cols}
+                    name="import-columns" inputMode="numeric" autoComplete="off"
                     onChange={e => setColsRespectingAspect(parseInt(e.target.value) || 1)}
                     min="1" max={MAX_CHART_COLS}
                     className="w-full px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-700"
@@ -698,6 +738,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                   <label htmlFor="grid-rows-modal" className="block text-xs text-neutral-600 dark:text-neutral-400 mb-1">Rows</label>
                   <input
                     type="number" id="grid-rows-modal" value={gridConfig.rows}
+                    name="import-rows" inputMode="numeric" autoComplete="off"
                     onChange={e => setRowsRespectingAspect(parseInt(e.target.value) || 1)}
                     min="1" max={MAX_CHART_ROWS}
                     className="w-full px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-700"
@@ -718,6 +759,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                   <label htmlFor="num-colors-modal" className="block text-xs text-neutral-600 dark:text-neutral-400 mb-1">How many colors</label>
                   <input
                     type="number" id="num-colors-modal" value={gridConfig.numColors}
+                    name="import-color-count" inputMode="numeric" autoComplete="off"
                     onChange={e => setGridConfig(p => ({ ...p, numColors: parseInt(e.target.value) || 1 }))}
                     min="1" max="256"
                     className="w-full px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-700"
@@ -727,6 +769,7 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                   <label htmlFor="pooling-algo-modal" className="block text-xs text-neutral-600 dark:text-neutral-400 mb-1">Cell color</label>
                   <select
                     id="pooling-algo-modal"
+                    name="import-cell-color"
                     value={gridConfig.poolingAlgorithm}
                     onChange={e => setGridConfig(p => ({ ...p, poolingAlgorithm: e.target.value as 'mean' | 'mode' }))}
                     className="w-full px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-700"
@@ -804,6 +847,8 @@ export const ImageProcessorModal: React.FC<ImageProcessorModalProps> = ({ isOpen
                         </span>
                         <input
                           type="color"
+                          name={`remap-${rgbToHex(originalColorRgb).slice(1)}`}
+                          aria-label={`Replace ${rgbToHex(originalColorRgb)}`}
                           value={remapColorInputs[originalColorRgb] || rgbToHex(originalColorRgb)}
                           onChange={e => handleRemapColorChange(originalColorRgb, e.target.value)}
                           className="w-9 h-7 p-0.5 border border-neutral-300 dark:border-neutral-600 rounded cursor-pointer flex-shrink-0"

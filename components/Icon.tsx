@@ -38,6 +38,8 @@ export const Icon: React.FC<IconProps> = ({
       style={style}
       transform={transform}
       fillRule={fillRule}
+      aria-hidden="true"
+      focusable="false"
     >
       <path strokeLinecap="round" strokeLinejoin="round" d={path} />
     </svg>
@@ -47,6 +49,27 @@ export const Icon: React.FC<IconProps> = ({
 type SpecificIconComponentProps = Partial<Omit<IconProps, 'path'>>;
 
 export const PenIcon = (props: SpecificIconComponentProps) => <Icon path="M16 3l5 5L8 21H3v-5L16 3z" {...props} />;
+export const LineIcon = (props: SpecificIconComponentProps) => <Icon path="M5 19L19 5" {...props} />;
+export const RectangleIcon = (props: SpecificIconComponentProps) => <Icon path="M4 5h16v14H4z" {...props} />;
+export const FillIcon = ({ className = 'w-5 h-5', size, strokeWidth = 2 }: SpecificIconComponentProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={size ? { width: size, height: size } : undefined}
+    aria-hidden="true"
+  >
+    <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2a2 2 0 0 0 2.8 0L19 11Z" />
+    <path d="m5 2 5 5" />
+    <path d="M2 13h15" />
+    <path d="M22 20a2 2 0 1 1-4 0c0-1.6 2-4 2-4s2 2.4 2 4Z" />
+  </svg>
+);
 export const EraserIcon = (props: SpecificIconComponentProps) => <Icon path="M6.162 6.162a2.5 2.5 0 013.536 0L15.536 12l-5.838 5.838a2.5 2.5 0 01-3.536-3.536L12 12.464 6.162 6.626V6.162zm9.9-2.475L10.225 9.525M19.5 8.5l-3.536 3.536" {...props} />;
 export const SelectIcon = (props: SpecificIconComponentProps) => <Icon path="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" {...props} />;
 export const PaletteIcon = (props: SpecificIconComponentProps) => <Icon path="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.35 0 2.65-.26 3.84-.73l-.04.03c.16-.09.31-.18.46-.29.99-.68 1.81-1.59 2.42-2.62.01 0 .01-.01.02-.01.06-.1.11-.2.17-.3.05-.1.1-.19.15-.29.45-.92.75-1.93.86-2.98.01-.02.01-.04.02-.06.02-.16.04-.32.05-.48C22 10 22 8.85 21.74 7.75c-.06-.25-.12-.5-.2-.74-.09-.3-.19-.59-.3-.87-.29-.81-.68-1.56-1.15-2.23-.09-.13-.19-.26-.29-.38-.01-.02-.03-.03-.04-.05-.6-.78-1.32-1.46-2.13-2.02A9.992 9.992 0 0012 2zm-1 14H9v-2h2v2zm0-4H9V9.99h2V12zm0-4.01H9V6h2v1.99zm4 4H13v-2h2v2zm0-4H13V9.99h2V12zm0-4.01H13V6h2v1.99z" fill="currentColor" {...props}/>;

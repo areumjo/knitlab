@@ -32,7 +32,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
     <div className="p-2 space-y-2">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Layers</h3>
-        <Button size="sm" variant="ghost" onClick={onAddLayer} title="Add new layer">
+        <Button size="sm" variant="ghost" onClick={onAddLayer} title="Add new layer" aria-label="Add new layer">
             <PlusIcon />
         </Button>
       </div>
@@ -41,11 +41,18 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
         {layers.map((layer, index) => (
           <li
             key={layer.id}
-            className={`group flex items-center justify-between p-2 rounded cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors
+            className={`group flex items-center justify-between rounded transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700
                         ${activeLayerId === layer.id ? 'bg-primary/20 dark:bg-primary-dark/30' : ''}`}
-            onClick={() => onLayerSelect(layer.id)}
           >
-            <span className="text-sm truncate flex-grow" title={layer.name}>{layer.name || `Layer ${index + 1}`}</span>
+            <button
+              type="button"
+              className="min-w-0 flex-grow truncate rounded p-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+              title={layer.name}
+              aria-current={activeLayerId === layer.id ? 'true' : undefined}
+              onClick={() => onLayerSelect(layer.id)}
+            >
+              {layer.name || `Layer ${index + 1}`}
+            </button>
             <div className="flex items-center space-x-1 ml-2">
               {activeLayerId === layer.id && (
                 <Button 
@@ -53,15 +60,16 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
                     variant="ghost" 
                     onClick={(e) => { e.stopPropagation(); onSelectAllActiveLayer(); }} 
                     title="Select all in this layer (Ctrl+A behavior for layer)"
-                    className="opacity-0 group-hover:opacity-100 focus:opacity-100" // Show on hover/focus
+                    aria-label={`Select all in ${layer.name || `Layer ${index + 1}`}`}
+                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                 >
                     {SelectAllIcon ? <SelectAllIcon /> : <DefaultSelectAllIcon />}
                 </Button>
               )}
-              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onToggleLayerVisibility(layer.id); }} title={layer.isVisible ? "Hide layer" : "Show layer"}>
+              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onToggleLayerVisibility(layer.id); }} title={layer.isVisible ? "Hide layer" : "Show layer"} aria-label={`${layer.isVisible ? 'Hide' : 'Show'} ${layer.name || `Layer ${index + 1}`}`}>
                 {layer.isVisible ? <EyeOpenIcon /> : <EyeClosedIcon />}
               </Button>
-              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onRemoveLayer(layer.id); }} title="Delete layer" className="text-red-500 hover:text-red-700 disabled:opacity-50" disabled={layers.length <= 1}>
+              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onRemoveLayer(layer.id); }} title="Delete layer" aria-label={`Delete ${layer.name || `Layer ${index + 1}`}`} className="text-red-500 hover:text-red-700 disabled:opacity-50" disabled={layers.length <= 1}>
                 <TrashIcon />
               </Button>
             </div>

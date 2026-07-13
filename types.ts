@@ -33,6 +33,8 @@ export interface KeyDefinition {
   backgroundColor: string;
   symbolColor: string;
   cells?: (KeyCellContent | null)[][];
+  /** Per-cell colors for a reusable multi-color tile. Null uses backgroundColor. */
+  colorCells?: (string | null)[][];
   lines?: Line[];
 }
 
@@ -80,6 +82,9 @@ export interface ChartState {
 
 export enum Tool {
   Pen = 'pen',
+  Line = 'line',
+  Rectangle = 'rectangle',
+  Fill = 'fill',
   Select = 'select',
   Move = 'move',
 }
@@ -129,32 +134,6 @@ export interface ApplicationState {
   sheets: ChartState[];
   activeSheetId: string | null;
   keyPalette: KeyDefinition[];
-  // Set when this chart was opened from a published Explore design.
-  // Persists through save/load cycles. See docs/EXPLORE_BACKEND.md.
-  originalDesignId?: string;
-  originalAuthor?: string;
-  originalTitle?: string;
-}
-
-// Explore gallery — see docs/EXPLORE_BACKEND.md for full schema.
-export interface ManifestEntry {
-  id: string;
-  title: string;
-  author: string;
-  submitter: string;
-  description?: string;
-  tags: string[];
-  date: string;
-  thumbnailUrl: string;
-  payloadUrl: string;
-  issueUrl: string;
-  remixOf?: string;
-}
-
-export interface Manifest {
-  version: number;
-  updated: string;
-  designs: ManifestEntry[];
 }
 
 export interface ClipboardData {

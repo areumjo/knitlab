@@ -72,10 +72,13 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
               <input
                 type="number"
                 id="chartRows"
+                name="chart-rows"
+                inputMode="numeric"
+                autoComplete="off"
                 value={rows}
                 onChange={(e) => setRows(Math.min(MAX_CHART_ROWS, Math.max(1, parseInt(e.target.value) || 1)))}
                 min="1" max={MAX_CHART_ROWS}
-                className="mt-1 block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white dark:bg-neutral-700"
+                className="mt-1 block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus-visible:outline-none focus-visible:ring-primary focus-visible:border-primary sm:text-sm bg-white dark:bg-neutral-700"
               />
             </div>
             <div>
@@ -83,10 +86,13 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
               <input
                 type="number"
                 id="chartCols"
+                name="chart-columns"
+                inputMode="numeric"
+                autoComplete="off"
                 value={cols}
                 onChange={(e) => setCols(Math.min(MAX_CHART_COLS, Math.max(1, parseInt(e.target.value) || 1)))}
                 min="1" max={MAX_CHART_COLS}
-                className="mt-1 block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white dark:bg-neutral-700"
+                className="mt-1 block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus-visible:outline-none focus-visible:ring-primary focus-visible:border-primary sm:text-sm bg-white dark:bg-neutral-700"
               />
             </div>
         </div>
@@ -94,9 +100,10 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
           <label htmlFor="chartOrientation" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Orientation</label>
           <select
             id="chartOrientation"
+            name="chart-orientation"
             value={orientation}
             onChange={(e) => setOrientation(e.target.value as ChartState['orientation'])}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md bg-white dark:bg-neutral-700"
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-300 dark:border-neutral-600 focus-visible:outline-none focus-visible:ring-primary focus-visible:border-primary sm:text-sm rounded-md bg-white dark:bg-neutral-700"
           >
             <option value="bottom-up">Bottom-Up</option>
             <option value="top-down">Top-Down</option>
@@ -105,15 +112,16 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
           </select>
         </div>
         <div className="pt-2 border-t border-neutral-300 dark:border-neutral-600">
-            <h4 className="text-md font-medium text-neutral-700 dark:text-neutral-300 mb-2">Row/Column Counters</h4>
+            <h3 className="text-md font-medium text-neutral-700 dark:text-neutral-300 mb-2">Row/Column Counters</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="rowCountVisibility" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Row Counters</label>
                     <select
                         id="rowCountVisibility"
+                        name="row-counter-visibility"
                         value={displaySettings.rowCountVisibility}
                         onChange={(e) => handleDisplaySettingChange('rowCountVisibility', e.target.value as ChartDisplaySettings['rowCountVisibility'])}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md bg-white dark:bg-neutral-700"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-300 dark:border-neutral-600 focus-visible:outline-none focus-visible:ring-primary focus-visible:border-primary sm:text-sm rounded-md bg-white dark:bg-neutral-700"
                     >
                         <option value="none">None</option>
                         <option value="left">Left Side</option>
@@ -127,9 +135,10 @@ export const ChartSettingsModal: React.FC<ChartSettingsModalProps> = ({
                     <label htmlFor="colCountVisibility" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Column Counters</label>
                     <select
                         id="colCountVisibility"
+                        name="column-counter-visibility"
                         value={displaySettings.colCountVisibility}
                         onChange={(e) => handleDisplaySettingChange('colCountVisibility', e.target.value as ChartDisplaySettings['colCountVisibility'])}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md bg-white dark:bg-neutral-700"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-300 dark:border-neutral-600 focus-visible:outline-none focus-visible:ring-primary focus-visible:border-primary sm:text-sm rounded-md bg-white dark:bg-neutral-700"
                     >
                         <option value="none">None</option>
                         <option value="top">Top Side</option>

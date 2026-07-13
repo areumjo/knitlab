@@ -3,14 +3,9 @@ import { compressSync, decompressSync } from 'fflate';
 import { ApplicationState, ChartState, KeyDefinition, KeyCellContent, Line } from '../types';
 import {
   buildGridFromKeyPlacements,
-  KEY_ID_KNIT_DEFAULT,
-  KEY_ID_PURL_DEFAULT,
-  KEY_ID_EMPTY,
 } from '../constants';
 
-const BUILTIN_KEY_IDS = new Set([KEY_ID_KNIT_DEFAULT, KEY_ID_PURL_DEFAULT, KEY_ID_EMPTY]);
-
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 /**
  * Compact format for serialization (abbreviated keys to reduce size)
@@ -20,9 +15,6 @@ interface CompactApplicationState {
   p: CompactKeyDefinition[];    // keyPalette
   s: CompactChartState[];       // sheets
   a: string | null;             // activeSheetId
-  od?: string;                  // originalDesignId (remix metadata)
-  oa?: string;                  // originalAuthor
-  ot?: string;                  // originalTitle
 }
 
 interface CompactKeyDefinition {
@@ -34,6 +26,7 @@ interface CompactKeyDefinition {
   bg: string;                   // backgroundColor
   sc: string;                   // symbolColor
   c?: (KeyCellContent | null)[][]; // cells
+  cc?: (string | null)[][];     // per-cell colors for a multi-color tile
   l?: Line[];                   // lines
 }
 
@@ -70,6 +63,7 @@ function toCompactFormat(state: ApplicationState): CompactApplicationState {
       bg: k.backgroundColor,
       sc: k.symbolColor,
       c: k.cells,
+      cc: k.colorCells,
       l: k.lines,
     })),
     s: state.sheets.map(s => ({
@@ -94,10 +88,6 @@ function toCompactFormat(state: ApplicationState): CompactApplicationState {
     a: state.activeSheetId,
   };
 
-  if (state.originalDesignId) compact.od = state.originalDesignId;
-  if (state.originalAuthor) compact.oa = state.originalAuthor;
-  if (state.originalTitle) compact.ot = state.originalTitle;
-
   return compact;
 }
 
@@ -114,6 +104,7 @@ function fromCompactFormat(compact: CompactApplicationState, _keyPalette: KeyDef
     backgroundColor: k.bg,
     symbolColor: k.sc,
     cells: k.c,
+    colorCells: k.cc,
     lines: k.l,
   }));
 
@@ -146,36 +137,6 @@ function fromCompactFormat(compact: CompactApplicationState, _keyPalette: KeyDef
       activeLayerId: s.al,
     })),
     activeSheetId: compact.a,
-    ...(compact.od && { originalDesignId: compact.od }),
-    ...(compact.oa && { originalAuthor: compact.oa }),
-    ...(compact.ot && { originalTitle: compact.ot }),
-  };
-}
-
-/**
- * Reduce an ApplicationState to just what should ship in a published design:
- * the active sheet, plus the palette entries it actually references. Sibling
- * sheets and unreferenced custom stitches from the user's workspace are dropped.
- */
-export function trimForPublish(state: ApplicationState): ApplicationState {
-  const activeSheet =
-    state.sheets.find(s => s.id === state.activeSheetId) ?? state.sheets[0];
-  if (!activeSheet) return state;
-
-  const referencedKeyIds = new Set<string>(BUILTIN_KEY_IDS);
-  for (const layer of activeSheet.layers) {
-    for (const placement of layer.keyPlacements ?? []) {
-      referencedKeyIds.add(placement.keyId);
-    }
-  }
-
-  const trimmedPalette = state.keyPalette.filter(k => referencedKeyIds.has(k.id));
-
-  return {
-    ...state,
-    keyPalette: trimmedPalette,
-    sheets: [activeSheet],
-    activeSheetId: activeSheet.id,
   };
 }
 

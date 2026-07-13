@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    letter-spacing: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  :where(button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid #2a9db1;
+    outline-offset: 2px;
+  }
+}
+
+.safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .safe-bottom {
+    padding-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.brand-knit-mark {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #c8cdd2;
+  background: #ffffff;
+}
+
+.brand-knit-mark i {
+  background: #23475c;
+}
+
+.brand-knit-mark i:nth-child(2),
+.brand-knit-mark i:nth-child(4),
+.brand-knit-mark i:nth-child(6),
+.brand-knit-mark i:nth-child(8) {
+  background: #d9a72f;
+}
+
+.brand-knit-mark i:nth-child(5) {
+  background: #d14b3f;
+}
+
+.dark .brand-knit-mark {
+  border-color: #6b7280;
+  background: #1f2937;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+.icon-button svg {
+  width: 1.25em;
+  height: 1.25em;
+}

@@ -1,42 +1,28 @@
-# Development Guide
+# Development
 
-This guide provides the essential steps to set up and contribute to the Knitlab project.
+## Local workflow
 
-## Prerequisites
+```bash
+npm ci
+npm run dev
+npm run verify
+```
 
--   **Node.js:** Version 18 or higher.
--   **npm:** Comes bundled with Node.js.
+Vite serves the app locally and builds it with the `/knitlab/` base used by
+GitHub Pages. `npm run verify` runs strict TypeScript, Vitest, and a production
+build. The deploy workflow runs the same gate before publishing `dist/`.
 
-## Running Locally
+## Code orientation
 
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+- `App.tsx`: application shell and state orchestration
+- `lib/colorworkTools.ts`: pure pen/line/rectangle/flood-fill geometry
+- `services/colorworkMutationService.ts`: owner-aware paint/clear/move/paste commits
+- `components/KnitCanvas.tsx`: grid rendering and pointer interactions
+- `components/BlockEditorModal.tsx`: reusable multi-color tile definitions
+- `services/colorworkExportService.ts`: exact PNG and `ColorworkChartV1` export
+- `lib/colorworkState.ts`: rejects legacy symbol/no-stitch state on load
+- `services/serializationService.ts`: editable `.knitlab` save/open
 
-2.  **Start the Development Server:**
-    ```bash
-    npm run dev
-    ```
-    The server will start, typically at `http://localhost:5173`. Open this URL in your browser. The project uses Vite, so most code changes will be reflected instantly via Hot Module Replacement (HMR).
-
-## Codebase Orientation
-
-To understand the application, start with these files:
-
-1.  **`types.ts`**: Defines the core data structures. Understanding this file is the fastest way to understand how the application works.
-2.  **`App.tsx`**: The root component. It contains almost all application state and feature logic.
-3.  **`docs/OVERVIEW.md`**: Provides a more detailed explanation of the architecture.
-
-## Key Development Patterns
-
-*   **State Flow:** `App.tsx` is the single source of truth. It passes state down to components as props. To update the state, components call functions passed down from `App.tsx` (e.g., `onSave`, `onAddLayer`). This is a simple, top-down data flow.
-
-*   **Undo/Redo:** Any state change that should be undoable **must** be wrapped in a `recordChange(...)` call in `App.tsx`. This function, provided by the `useChartHistory` hook, properly updates the history stack. Transient UI changes that shouldn't be in the history (like theme updates) use `updateCurrentState`.
-
-*   **Styling:** We use Tailwind CSS for all styling. The configuration is embedded directly in `index.html` for simplicity.
-
-## Deployment
-
-The project is configured for deployment to GitHub Pages. Pushing to the `main` branch will automatically trigger the `deploy.yml` GitHub Action, which builds the project and deploys the static files from the `dist` directory to the `gh-pages` branch.
-
+All committed chart edits must cross `colorworkMutationService`; gesture
+previews stay local to `KnitCanvas` and never enter history or autosave. Keep machine,
+yarn, carrier, garment, instructions, and publishing concerns out of this repo.
