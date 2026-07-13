@@ -18,7 +18,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
 }) => {
   const { rows, cols, layers } = chartState;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLButtonElement>(null);
 
   const backgroundKeyDef = keyPalette.find(k => k.id === KEY_ID_KNIT_DEFAULT) || {
     id: KEY_ID_KNIT_DEFAULT,
@@ -144,7 +144,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
     }
   }, [rows, cols, getMinimapCellColor, viewport, isDarkMode, maxContainerSize.width, maxContainerSize.height, chartState]);
 
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     const canvas = canvasRef.current;
     if (!canvas || canvas.width === 0 || canvas.height === 0) return;
 
@@ -162,16 +162,28 @@ export const MiniMap: React.FC<MiniMapProps> = ({
   };
 
   return (
-    <div
+    <button
+        type="button"
         ref={containerRef}
-        className="w-full h-full border border-neutral-300 dark:border-neutral-600 bg-neutral-200/80 dark:bg-neutral-700/80 relative overflow-hidden cursor-pointer shadow-lg rounded"
+        className="relative h-full w-full cursor-pointer overflow-hidden rounded border border-neutral-300 bg-neutral-200/80 p-0 text-left shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-neutral-600 dark:bg-neutral-700/80"
         onClick={handleClick}
+        onKeyDown={(event) => {
+          const stepX = Math.max(1, Math.round(viewport.width / 4));
+          const stepY = Math.max(1, Math.round(viewport.height / 4));
+          if (event.key === 'ArrowLeft') onPan({ x: Math.max(0, viewport.x + viewport.width / 2 - stepX), y: viewport.y + viewport.height / 2 });
+          else if (event.key === 'ArrowRight') onPan({ x: Math.min(cols - 1, viewport.x + viewport.width / 2 + stepX), y: viewport.y + viewport.height / 2 });
+          else if (event.key === 'ArrowUp') onPan({ x: viewport.x + viewport.width / 2, y: Math.max(0, viewport.y + viewport.height / 2 - stepY) });
+          else if (event.key === 'ArrowDown') onPan({ x: viewport.x + viewport.width / 2, y: Math.min(rows - 1, viewport.y + viewport.height / 2 + stepY) });
+          else return;
+          event.preventDefault();
+        }}
+        aria-label="Pan chart with minimap"
         style={{ backdropFilter: 'blur(2px)' }}
     >
-        <h3 className="absolute top-1 left-1 text-xs font-semibold text-neutral-700 dark:text-neutral-200 uppercase tracking-wider select-none pointer-events-none px-1 py-0.5 rounded bg-transparent">
+        <span className="pointer-events-none absolute left-1 top-1 select-none rounded bg-transparent px-1 py-0.5 text-xs font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-200">
             Mini Map
-        </h3>
-        <canvas ref={canvasRef} className="block" />
-    </div>
+        </span>
+        <canvas ref={canvasRef} className="block" aria-hidden="true" />
+    </button>
   );
 };

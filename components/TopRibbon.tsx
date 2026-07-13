@@ -242,6 +242,7 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
           <PlusIcon />
           <input
             type="color"
+            name="new-color"
             className="sr-only"
             aria-label="Choose color to add"
             onChange={(event) => onAddColor(event.target.value.toUpperCase())}

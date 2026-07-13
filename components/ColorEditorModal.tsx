@@ -32,14 +32,18 @@ export const ColorEditorModal: React.FC<ColorEditorModalProps> = ({
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-neutral-600 dark:text-neutral-400">Name</span>
           <input
+            name="color-name"
+            autoComplete="off"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary dark:border-neutral-600 dark:bg-neutral-700"
+            className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-neutral-600 dark:bg-neutral-700"
           />
         </label>
         <label className="flex items-center gap-3">
           <input
             type="color"
+            name="color-value"
+            aria-label="Color value"
             value={hex}
             onChange={(event) => setHex(event.target.value.toUpperCase())}
             className="h-12 w-16 cursor-pointer rounded border border-neutral-300 bg-white p-1 dark:border-neutral-600 dark:bg-neutral-700"
@@ -62,4 +66,3 @@ export const ColorEditorModal: React.FC<ColorEditorModalProps> = ({
     </Modal>
   );
 };
-

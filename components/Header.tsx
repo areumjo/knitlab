@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
         <span className="brand-knit-mark" aria-hidden="true">
           {Array.from({ length: 9 }, (_, index) => <i key={index} />)}
         </span>
-        <h1 className="whitespace-nowrap text-xl font-bold text-neutral-900 dark:text-white">
+        <h1 className="whitespace-nowrap text-xl font-bold text-neutral-900 dark:text-white" translate="no">
           KnitLab
         </h1>
       </div>
@@ -90,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="order-3 flex w-full min-w-0 items-center justify-center gap-1 overflow-x-auto border-t border-neutral-200 pt-1 dark:border-neutral-700 md:order-2 md:w-auto md:flex-1 md:border-0 md:pt-0" aria-label="Chart commands">
         <Button variant="ghost" size="sm" className={iconButton} onClick={onNew} title="New chart" aria-label="New chart"><PlusIcon /></Button>
         <Button variant="ghost" size="sm" className={iconButton} onClick={() => fileInputRef.current?.click()} title="Open .knitlab file" aria-label="Open chart"><UploadIcon /></Button>
-        <input ref={fileInputRef} type="file" accept=".knitlab,.json" className="hidden" onChange={openFile} />
+        <input ref={fileInputRef} type="file" name="chart-file" aria-label="Choose chart file" accept=".knitlab,.json" className="hidden" onChange={openFile} />
         <Button variant="ghost" size="sm" className={iconButton} onClick={onSaveProject} title="Save .knitlab file" aria-label="Save chart"><DownloadIcon /></Button>
         <div className="mx-1 h-6 border-l border-neutral-300 dark:border-neutral-600" />
         <Button variant="ghost" size="sm" className={iconButton} onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo"><UndoIcon /></Button>

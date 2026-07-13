@@ -182,6 +182,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDarkMode ? '#1F2937' : '#FFFFFF');
   }, [isDarkMode]);
 
 
@@ -1230,15 +1231,14 @@ export const App: React.FC = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const isAnyModalOpen = isBlockEditorOpen || isColorEditorOpen || isImageProcessorModalOpen
+        || isChartSettingsModalOpen || isExportPreviewModalOpen;
+      if (isAnyModalOpen) return;
+
       if (event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement ||
           event.target instanceof HTMLSelectElement) {
-        // Don't interfere if user is typing in an input/modal
-        if (event.key === "Escape" && (isBlockEditorOpen || isColorEditorOpen || isImageProcessorModalOpen || isChartSettingsModalOpen || isExportPreviewModalOpen)) {
-            // Allow Escape to close modals even if an input inside has focus
-        } else {
-            return;
-        }
+        return;
       }
 
       // Tool shortcuts
@@ -1336,7 +1336,13 @@ export const App: React.FC = () => {
     || activeSheet.cols * CELL_SIZE * currentZoom > canvasContainerSize.width;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-100 transition-colors duration-300 dark:bg-neutral-800">
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-100 transition-colors duration-300 motion-reduce:transition-none dark:bg-neutral-800">
+      <a
+        href="#chart-workspace"
+        className="absolute left-3 top-0 z-50 -translate-y-full rounded-b-md bg-neutral-900 px-3 py-2 text-sm font-semibold text-white focus-visible:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        Skip to chart
+      </a>
       <Header
         onUndo={undo}
         canUndo={canUndo}
@@ -1395,7 +1401,7 @@ export const App: React.FC = () => {
           onToggleSidebarContentVisibility={toggleSidebarContentVisibility}
           onOpenImageProcessor={() => setIsImageProcessorModalOpen(true)}
         />
-        <main ref={mainCanvasWrapperRef} className="relative flex min-h-0 flex-grow items-center justify-center overflow-hidden bg-neutral-200 dark:bg-neutral-900">
+        <main id="chart-workspace" ref={mainCanvasWrapperRef} tabIndex={-1} className="relative flex min-h-0 flex-grow items-center justify-center overflow-hidden bg-neutral-200 outline-none dark:bg-neutral-900">
           {canvasContainerSize.width > 0 && canvasContainerSize.height > 0 && activeSheet && (
             <KnitCanvas
               chartState={activeSheet}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useId, useMemo } from 'react';
 import { ChartState, StitchSymbolDef, Tool, Point, SelectionRect, ContextMenuItem, HoveredGutterInfo, DraggedCellsInfo, ClipboardData, KeyDefinition, KeyInstance } from '../types';
 import { ContextMenu } from './ContextMenu';
 import {
@@ -99,6 +99,8 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   const currentMousePositionRef = useRef<{ xInCanvas: number, yInCanvas: number, xInPannable: number, yInPannable: number } | null>(null);
   const wheelZoomDeltaRef = useRef(0);
   const lastWheelZoomAtRef = useRef(0);
+  const canvasInstructionsId = useId();
+  const canvasCursorStatusId = useId();
 
 
   const [toolGesture, setToolGesture] = useState<ToolGesture | null>(null);
@@ -288,6 +290,75 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     if (toolGesture.tool === Tool.Line) return rasterLine(toolGesture.start, toolGesture.current);
     return rasterRectangle(toolGesture.start, toolGesture.current);
   }, [toolGesture]);
+
+  const handleCanvasKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    const cursor = hoveredCanvasCell ?? { x: 0, y: 0 };
+    const arrowDelta: Record<string, Point> = {
+      ArrowLeft: { x: -1, y: 0 },
+      ArrowRight: { x: 1, y: 0 },
+      ArrowUp: { x: 0, y: -1 },
+      ArrowDown: { x: 0, y: 1 },
+    };
+    const delta = arrowDelta[event.key];
+    if (delta) {
+      event.preventDefault();
+      const next = {
+        x: Math.max(0, Math.min(cols - 1, cursor.x + delta.x)),
+        y: Math.max(0, Math.min(rows - 1, cursor.y + delta.y)),
+      };
+      onHoveredCellChange(next);
+      if (toolGesture && (toolGesture.tool === Tool.Line || toolGesture.tool === Tool.Rectangle)) {
+        setToolGesture((current) => current ? { ...current, current: next } : current);
+      }
+      if (event.shiftKey && activeTool === Tool.Select) {
+        onSelectionChange({ start: selection?.start ?? cursor, end: next }, false, next);
+      }
+      return;
+    }
+
+    if (event.key === 'Escape' && toolGesture) {
+      event.preventDefault();
+      event.stopPropagation();
+      setToolGesture(null);
+      return;
+    }
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    event.preventDefault();
+    if (activeTool === Tool.Select) {
+      onSelectionChange({ start: cursor, end: cursor }, false, cursor);
+      return;
+    }
+    if (!activeKeyDefinition || activeTool === Tool.Move) return;
+
+    if (activeTool === Tool.Pen) {
+      onToolPointsCommit([cursor], activeKeyDefinition);
+      return;
+    }
+    if (!activeKeyIsSolid) return;
+    if (activeTool === Tool.Fill && activeLayer) {
+      onToolPointsCommit(
+        floodFillPoints(activeLayer, keyPalette, cursor, rows, cols, activeKeyDefinition),
+        activeKeyDefinition,
+      );
+      return;
+    }
+    if (activeTool === Tool.Line || activeTool === Tool.Rectangle) {
+      if (toolGesture?.tool === activeTool) {
+        const points = activeTool === Tool.Line
+          ? rasterLine(toolGesture.start, toolGesture.current)
+          : rasterRectangle(toolGesture.start, toolGesture.current);
+        onToolPointsCommit(points, activeKeyDefinition);
+        setToolGesture(null);
+      } else {
+        setToolGesture({ tool: activeTool, start: cursor, current: cursor, points: [cursor] });
+      }
+    }
+  }, [
+    activeKeyDefinition, activeKeyIsSolid, activeLayer, activeTool, cols, hoveredCanvasCell,
+    keyPalette, onHoveredCellChange, onSelectionChange, onToolPointsCommit, rows, selection,
+    toolGesture,
+  ]);
 
   const drawInteractionLayer = useCallback(async () => {
     if (!interactionCanvasRef.current || !activeLayer || canvasSize.width === 0 || canvasSize.height === 0) return;
@@ -812,15 +883,27 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   return (
     <div
       ref={canvasContainerRef}
-      className="w-full h-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative select-none touch-none"
+      className="relative h-full w-full touch-none select-none overflow-hidden bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:bg-neutral-800"
       style={{ cursor: cursorStyle }}
       onContextMenu={handleContextMenu}
       onPointerMove={handleCanvasPointerMove}
       onPointerDown={handleCanvasPointerDown}
       onPointerLeave={() => { onHoveredCellChange(null); setHoveredGutterInfo(null); }}
+      onFocus={() => onHoveredCellChange(hoveredCanvasCell ?? { x: 0, y: 0 })}
+      onKeyDown={handleCanvasKeyDown}
       aria-label="Colorwork chart canvas"
+      aria-describedby={`${canvasInstructionsId} ${canvasCursorStatusId}`}
       role="application"
+      tabIndex={0}
     >
+      <span id={canvasInstructionsId} className="sr-only">
+        Use arrow keys to move between cells. Press Enter or Space to use the active tool. Hold Shift with an arrow key to extend a selection.
+      </span>
+      <span id={canvasCursorStatusId} className="sr-only" role="status" aria-live="polite">
+        {hoveredCanvasCell
+          ? `Column ${hoveredCanvasCell.x + 1}, row ${orientation === 'bottom-up' ? rows - hoveredCanvasCell.y : hoveredCanvasCell.y + 1}`
+          : 'No cell selected'}
+      </span>
       <canvas ref={baseCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} aria-hidden="true" />
       <canvas ref={interactionCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} aria-hidden="true" />
 

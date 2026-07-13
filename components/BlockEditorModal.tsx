@@ -133,9 +133,11 @@ export const BlockEditorModal: React.FC<BlockEditorModalProps> = ({
           <span className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1">Name</span>
           <input
             type="text"
+            name="block-name"
+            autoComplete="off"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 outline-none focus:ring-2 focus:ring-primary dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100"
+            className="w-full rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100"
           />
         </label>
 
@@ -181,6 +183,8 @@ export const BlockEditorModal: React.FC<BlockEditorModalProps> = ({
               +
               <input
                 type="color"
+                name="block-color"
+                aria-label="Choose another color"
                 className="sr-only"
                 onChange={(event) => setActiveColor(event.target.value.toUpperCase())}
               />
@@ -222,4 +226,3 @@ export const BlockEditorModal: React.FC<BlockEditorModalProps> = ({
     </Modal>
   );
 };
-

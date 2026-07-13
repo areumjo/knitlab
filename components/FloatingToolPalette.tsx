@@ -84,7 +84,7 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
   );
 
   return (
-    <div ref={ref} className="fixed inset-x-0 bottom-0 z-20 overflow-x-auto px-2 pb-2 print:hidden md:bottom-4 md:flex md:justify-center md:pb-0">
+    <div ref={ref} className="safe-bottom fixed inset-x-0 bottom-0 z-20 overflow-x-auto px-2 print:hidden md:bottom-4 md:flex md:justify-center">
       <div className="flex w-max flex-col items-center gap-1">
         <div className="flex items-center gap-1 rounded-md border border-neutral-300 bg-white p-1.5 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
           {renderButtonGroup(mainTools, "Main Tools")}

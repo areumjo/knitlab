@@ -38,6 +38,8 @@ export const Icon: React.FC<IconProps> = ({
       style={style}
       transform={transform}
       fillRule={fillRule}
+      aria-hidden="true"
+      focusable="false"
     >
       <path strokeLinecap="round" strokeLinejoin="round" d={path} />
     </svg>

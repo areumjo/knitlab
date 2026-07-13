@@ -56,7 +56,7 @@ export const SheetPanel: React.FC<SheetPanelProps> = ({
     <div className="p-2 space-y-2">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Sheets</h3>
-        <Button size="sm" variant="ghost" onClick={onAddSheet} title="Add new sheet">
+        <Button size="sm" variant="ghost" onClick={onAddSheet} title="Add new sheet" aria-label="Add new sheet">
           <PlusIcon />
         </Button>
       </div>
@@ -65,13 +65,14 @@ export const SheetPanel: React.FC<SheetPanelProps> = ({
         {sheets.map((sheet) => (
           <li
             key={sheet.id}
-            className={`group flex items-center justify-between p-2 rounded cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors
+            className={`group flex items-center justify-between rounded transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-700
                         ${activeSheetId === sheet.id ? 'bg-primary/20 dark:bg-primary-dark/30' : ''}`}
-            onClick={() => editingSheetId !== sheet.id && onSheetSelect(sheet.id)}
           >
             {editingSheetId === sheet.id ? (
               <input
                 type="text"
+                name="sheet-name"
+                autoComplete="off"
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
                 onBlur={handleRenameConfirm}
@@ -79,13 +80,19 @@ export const SheetPanel: React.FC<SheetPanelProps> = ({
                   if (e.key === 'Enter') handleRenameConfirm();
                   if (e.key === 'Escape') handleRenameCancel();
                 }}
-                className="text-sm flex-grow bg-neutral-50 dark:bg-neutral-700 border border-primary px-1 py-0.5 rounded outline-none"
+                className="m-2 min-w-0 flex-grow rounded border border-primary bg-neutral-50 px-1 py-0.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:bg-neutral-700"
                 autoFocus
               />
             ) : (
-              <span className="text-sm truncate flex-grow" title={sheet.name}>
+              <button
+                type="button"
+                className="min-w-0 flex-grow truncate rounded p-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                title={sheet.name}
+                aria-current={activeSheetId === sheet.id ? 'true' : undefined}
+                onClick={() => onSheetSelect(sheet.id)}
+              >
                 {sheet.name}
-              </span>
+              </button>
             )}
             <div className="flex items-center space-x-1 ml-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
               {editingSheetId !== sheet.id && (
@@ -94,6 +101,7 @@ export const SheetPanel: React.FC<SheetPanelProps> = ({
                   variant="ghost"
                   onClick={(e) => { e.stopPropagation(); handleRenameStart(sheet); }}
                   title="Rename sheet"
+                  aria-label={`Rename ${sheet.name}`}
                 >
                   <RenameSheetIcon />
                 </Button>
@@ -103,6 +111,7 @@ export const SheetPanel: React.FC<SheetPanelProps> = ({
                 variant="ghost"
                 onClick={(e) => { e.stopPropagation(); handleRemoveWithConfirm(sheet.id); }}
                 title="Delete sheet"
+                aria-label={`Delete ${sheet.name}`}
                 className="text-red-500 hover:text-red-700 disabled:opacity-50"
                 disabled={sheets.length <= 1}
               >

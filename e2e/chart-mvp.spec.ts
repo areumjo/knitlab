@@ -45,6 +45,80 @@ test('keeps wheel navigation deliberate', async ({ page }) => {
   await expect(page.getByText('150%', { exact: true })).toBeVisible();
 });
 
+test('isolates dialogs and restores editor focus', async ({ page }) => {
+  await page.getByRole('button', { name: 'Draw line' }).click();
+  const settingsButton = page.getByRole('button', { name: 'Chart settings' });
+  await settingsButton.click();
+
+  const dialog = page.getByRole('dialog', { name: 'Chart Settings' });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close modal' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Red', exact: true })).toHaveCount(0);
+
+  await page.keyboard.press('f');
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.getByRole('button', { name: 'Save Settings' })).toBeFocused();
+  await page.keyboard.press('Escape');
+
+  await expect(dialog).toHaveCount(0);
+  await expect(settingsButton).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Draw line' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('supports keyboard chart authoring and selection', async ({ page }) => {
+  const canvas = page.getByRole('application', { name: 'Colorwork chart canvas' });
+
+  await page.getByRole('button', { name: 'Red', exact: true }).click();
+  await canvas.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[title="Red - Used: 1"]')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Gold', exact: true }).click();
+  await page.getByRole('button', { name: 'Draw line' }).click();
+  await canvas.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[title="Gold - Used: 4"]')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Select area' }).click();
+  await canvas.focus();
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(page.getByRole('button', { name: 'Copy' })).toBeEnabled();
+});
+
+test('supports keyboard context-menu navigation', async ({ page }) => {
+  const red = page.getByRole('button', { name: 'Red', exact: true });
+  await red.focus();
+  await red.click({ button: 'right' });
+
+  const menu = page.getByRole('menu', { name: 'Actions' });
+  await expect(menu).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Edit color' })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('menuitem', { name: 'Duplicate Key' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await expect(red).toBeFocused();
+});
+
+test('supports keyboard crop positioning', async ({ page }) => {
+  await page.getByRole('button', { name: 'Import image' }).click();
+  await page.locator('#image-loader-modal').setInputFiles('assets/favicon-32x32.png');
+
+  const crop = page.getByRole('group', { name: 'Crop selection' });
+  await expect(crop).toBeVisible();
+  const before = await crop.boundingBox();
+  if (!before) throw new Error('Crop selection is not visible');
+  await crop.focus();
+  await page.keyboard.press('ArrowRight');
+  const after = await crop.boundingBox();
+  if (!after) throw new Error('Crop selection disappeared');
+  expect(after.x).toBeGreaterThan(before.x);
+});
+
 test('authors with line, rectangle, and flood fill as atomic gestures', async ({ page }) => {
   await page.getByRole('button', { name: 'Red', exact: true }).click();
   await page.getByRole('button', { name: 'Draw line' }).click();

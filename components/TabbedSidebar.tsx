@@ -154,7 +154,7 @@ export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
   return (
     <div
       ref={sidebarRef}
-      className="relative flex border-r border-neutral-300 bg-neutral-100 text-neutral-700 transition-all duration-150 ease-in-out print:hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+      className="relative flex border-r border-neutral-300 bg-neutral-100 text-neutral-700 transition-[width] duration-150 ease-in-out motion-reduce:transition-none print:hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
       style={{ width: `${currentTotalWidth}px` }}
     >
       {/* Tab Buttons Column */}
