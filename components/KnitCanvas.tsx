@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { ChartState, StitchSymbolDef, Tool, Point, SelectionRect, ContextMenuItem, HoveredGutterInfo, DraggedCellsInfo, ClipboardData, KeyDefinition, KeyInstance } from '../types';
 import { ContextMenu } from './ContextMenu';
 import {
@@ -10,6 +10,16 @@ import {
 } from '../constants';
 import { PlusIcon, XIcon } from './Icon';
 import { drawStitchSymbolOnCanvas } from '../canvasUtils';
+import { appendContinuousStroke, floodFillPoints, rasterLine, rasterRectangle } from '../lib/colorworkTools';
+
+type DrawingTool = Tool.Pen | Tool.Line | Tool.Rectangle;
+
+interface ToolGesture {
+  tool: DrawingTool;
+  start: Point;
+  current: Point;
+  points: Point[];
+}
 
 interface KnitCanvasProps {
   chartState: ChartState;
@@ -32,10 +42,10 @@ interface KnitCanvasProps {
   dragPreviewSnappedGridPosition: Point | null;
 
   onSelectionChange: (rawSelection: SelectionRect | null, isStillDrawing: boolean, currentActionPoint?: Point) => void;
-  onCellAction: (anchorCoords: Point, keyDefToApply: KeyDefinition | null) => void; // Simplified signature
-  onSelectionDragStart: (dragInfo: DraggedCellsInfo, initialGridPos: Point, event: React.MouseEvent) => void;
-  onSelectionDragMove: (snappedGridPos: Point, event: React.MouseEvent) => void;
-  onSelectionDragEnd: (dropTarget: Point | null, event: React.MouseEvent) => void;
+  onToolPointsCommit: (points: readonly Point[], key: KeyDefinition) => void;
+  onSelectionDragStart: (dragInfo: DraggedCellsInfo, initialGridPos: Point, event: React.PointerEvent) => void;
+  onSelectionDragMove: (snappedGridPos: Point, event: React.PointerEvent) => void;
+  onSelectionDragEnd: (dropTarget: Point | null, event: PointerEvent) => void;
 
   onRequestApplyActiveKeyToSelection: () => void;
   onRequestClearAllInSelection: () => void;
@@ -63,9 +73,6 @@ interface KnitCanvasProps {
   onPastePreviewCancel: () => void;
   activeKeyId: string | null;
 
-  onPenDragSessionStart: () => void;
-  onPenDragSessionContinue: () => void;
-  onPenDragSessionEnd: () => void;
 }
 
 
@@ -74,7 +81,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   viewOffset, onViewOffsetChange: externalOnViewOffsetChange, canvasSize,
   selection, isActuallyDrawingSel, selectionDragAnchorForCanvas,
   isActuallyDraggingSel, draggedCellsPreviewInfo, dragPreviewSnappedGridPosition,
-  onSelectionChange, onCellAction, onSelectionDragStart, onSelectionDragMove, onSelectionDragEnd,
+  onSelectionChange, onToolPointsCommit, onSelectionDragStart, onSelectionDragMove, onSelectionDragEnd,
   onRequestApplyActiveKeyToSelection, onRequestClearAllInSelection,
   onInsertRow, onDeleteRow, onInsertColumn, onDeleteColumn,
   selectAllActiveLayerFlag, onSelectAllProcessed,
@@ -82,7 +89,6 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   isPreviewingPaste, pastePreviewInfo, pastePreviewAnchor, hoveredCanvasCell,
   onHoveredCellChange, onPastePreviewMove, onPastePreviewFinalize, onPastePreviewCancel,
   activeKeyId,
-  onPenDragSessionStart, onPenDragSessionContinue, onPenDragSessionEnd,
 }) => {
   const { rows, cols, layers, activeLayerId: currentActiveLayerIdFromChartState, orientation, displaySettings } = chartState;
   const activeLayer = layers.find(l => l.id === currentActiveLayerIdFromChartState);
@@ -93,7 +99,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   const currentMousePositionRef = useRef<{ xInCanvas: number, yInCanvas: number, xInPannable: number, yInPannable: number } | null>(null);
 
 
-  const [isPenDrawing, setIsPenDrawing] = useState(false);
+  const [toolGesture, setToolGesture] = useState<ToolGesture | null>(null);
   const [isMiddleClickPanning, setIsMiddleClickPanning] = useState(false);
   const [panStart, setPanStart] = useState<Point | null>(null);
   const [hoveredGutterInfo, setHoveredGutterInfo] = useState<HoveredGutterInfo | null>(null);
@@ -105,6 +111,8 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
       backgroundColor: isDarkMode ? DEFAULT_CELL_COLOR_DARK : DEFAULT_CELL_COLOR_LIGHT,
       symbolColor: isDarkMode ? DEFAULT_STITCH_COLOR_DARK : DEFAULT_STITCH_COLOR_LIGHT
     };
+  const activeKeyDefinition = keyPalette.find((key) => key.id === activeKeyId) ?? null;
+  const activeKeyIsSolid = activeKeyDefinition?.width === 1 && activeKeyDefinition.height === 1;
 
   const gutterLeft = (displaySettings.rowCountVisibility === 'left' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-left' || displaySettings.rowCountVisibility === 'alternating-right') ? GUTTER_SIZE : 0;
   const gutterRight = (displaySettings.rowCountVisibility === 'right' || displaySettings.rowCountVisibility === 'both' || displaySettings.rowCountVisibility === 'alternating-left' || displaySettings.rowCountVisibility === 'alternating-right') ? GUTTER_SIZE : 0;
@@ -123,69 +131,24 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     let clampedY = proposedOffset.y;
 
     if (totalPannableWidth <= canvasSize.width) {
-        clampedX = Math.max(0, Math.min(proposedOffset.x, canvasSize.width - totalPannableWidth));
+        clampedX = (canvasSize.width - totalPannableWidth) / 2;
     } else {
         clampedX = Math.max(canvasSize.width - totalPannableWidth, Math.min(0, proposedOffset.x));
     }
 
     if (totalPannableHeight <= canvasSize.height) {
-        clampedY = Math.max(0, Math.min(proposedOffset.y, canvasSize.height - totalPannableHeight));
+        clampedY = (canvasSize.height - totalPannableHeight) / 2;
     } else {
         clampedY = Math.max(canvasSize.height - totalPannableHeight, Math.min(0, proposedOffset.y));
     }
     externalOnViewOffsetChange({ x: clampedX, y: clampedY});
   }, [totalPannableWidth, totalPannableHeight, canvasSize.width, canvasSize.height, externalOnViewOffsetChange]);
 
+  useEffect(() => {
+    onViewOffsetChange(viewOffset);
+  }, [canvasSize.width, canvasSize.height, totalPannableWidth, totalPannableHeight]);
+
   const fixedGridLineColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT;
-
-  const redrawCellOnBaseCanvas = useCallback(async (r: number, c: number, keyDefToApply: KeyDefinition) => {
-    if (!baseCanvasRef.current || !activeLayer) return;
-    const ctx = baseCanvasRef.current.getContext('2d');
-    if (!ctx) return;
-
-    const cellX = gutterLeft + c * scaledCellSize;
-    const cellY = gutterTop + r * scaledCellSize;
-
-    ctx.save();
-    ctx.translate(viewOffset.x, viewOffset.y);
-
-    ctx.clearRect(cellX, cellY, scaledCellSize, scaledCellSize);
-
-    ctx.fillStyle = resolveKeyCellBackgroundColor(keyDefToApply, 0, 0, isDarkMode);
-    ctx.fillRect(cellX, cellY, scaledCellSize, scaledCellSize);
-
-    // Grid lines first, all four sides — the original render painted only
-    // bottom/right and relied on neighbours for top/left, but that left the
-    // top/left grid lines from the original full-canvas render still on top
-    // of any custom-key edge strokes drawn next. Drawing all four here under
-    // the symbol means the stroke can cleanly overpaint the grid line.
-    ctx.strokeStyle = fixedGridLineColor;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    const leftBorderX = Math.round(cellX) + 0.5;
-    const rightBorderX = Math.round(cellX + scaledCellSize) + 0.5;
-    const topBorderY = Math.round(cellY) + 0.5;
-    const bottomBorderY = Math.round(cellY + scaledCellSize) + 0.5;
-    ctx.moveTo(leftBorderX - 0.5, topBorderY);
-    ctx.lineTo(rightBorderX, topBorderY);
-    ctx.moveTo(rightBorderX, topBorderY - 0.5);
-    ctx.lineTo(rightBorderX, bottomBorderY);
-    ctx.lineTo(leftBorderX - 0.5, bottomBorderY);
-    ctx.moveTo(leftBorderX, topBorderY - 0.5);
-    ctx.lineTo(leftBorderX, bottomBorderY);
-    ctx.stroke();
-
-    if (keyDefToApply && keyDefToApply.id !== KEY_ID_EMPTY) {
-      await drawStitchSymbolOnCanvas(
-        ctx, keyDefToApply, allSymbols, cellX, cellY, scaledCellSize, isDarkMode,
-        0, 0
-      );
-    }
-
-    ctx.restore();
-
-  }, [activeLayer, keyPalette, scaledCellSize, isDarkMode, allSymbols, gutterLeft, gutterTop, fixedGridLineColor, viewOffset]);
-
 
   const drawBaseLayer = useCallback(async () => {
     if (!baseCanvasRef.current || !activeLayer || canvasSize.width === 0 || canvasSize.height === 0) return;
@@ -317,6 +280,13 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
       gutterLeft, gutterTop, gutterRight, gutterBottom, fixedGridLineColor
   ]);
 
+  const toolPreviewPoints = useMemo(() => {
+    if (!toolGesture) return [];
+    if (toolGesture.tool === Tool.Pen) return toolGesture.points;
+    if (toolGesture.tool === Tool.Line) return rasterLine(toolGesture.start, toolGesture.current);
+    return rasterRectangle(toolGesture.start, toolGesture.current);
+  }, [toolGesture]);
+
   const drawInteractionLayer = useCallback(async () => {
     if (!interactionCanvasRef.current || !activeLayer || canvasSize.width === 0 || canvasSize.height === 0) return;
     const canvas = interactionCanvasRef.current;
@@ -344,13 +314,39 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         );
     }
 
-    if (hoveredCanvasCell && !isPreviewingPaste && !isPenDrawing && !isMiddleClickPanning && !selection && !isActuallyDraggingSel && !isActuallyDrawingSel && activeTool !== Tool.Move) {
+    if (hoveredCanvasCell && !isPreviewingPaste && !toolGesture && !isMiddleClickPanning && !selection && !isActuallyDraggingSel && !isActuallyDrawingSel && activeTool !== Tool.Move) {
         ctx.fillStyle = isDarkMode ? 'rgba(42, 157, 177, 0.3)' : 'rgba(118, 196, 213, 0.2)';
         ctx.fillRect(
             gutterLeft + hoveredCanvasCell.x * scaledCellSize,
             gutterTop + hoveredCanvasCell.y * scaledCellSize,
             scaledCellSize, scaledCellSize
         );
+    }
+
+    if (activeKeyDefinition && toolPreviewPoints.length > 0) {
+      ctx.globalAlpha = 0.68;
+      for (const anchor of toolPreviewPoints) {
+        for (let rowOffset = 0; rowOffset < activeKeyDefinition.height; rowOffset += 1) {
+          for (let colOffset = 0; colOffset < activeKeyDefinition.width; colOffset += 1) {
+            const row = anchor.y + rowOffset;
+            const col = anchor.x + colOffset;
+            if (row < 0 || row >= rows || col < 0 || col >= cols) continue;
+            ctx.fillStyle = resolveKeyCellBackgroundColor(
+              activeKeyDefinition,
+              rowOffset,
+              colOffset,
+              isDarkMode,
+            );
+            ctx.fillRect(
+              gutterLeft + col * scaledCellSize,
+              gutterTop + row * scaledCellSize,
+              scaledCellSize,
+              scaledCellSize,
+            );
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
     }
 
     const symbolDrawingPromises: Promise<void>[] = [];
@@ -421,7 +417,8 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
       activeLayer, selection, isDarkMode, viewOffset, scaledCellSize, canvasSize, rows, cols, zoomLevel,
       isActuallyDraggingSel, draggedCellsPreviewInfo, dragPreviewSnappedGridPosition, keyPalette, allSymbols,
       isPreviewingPaste, pastePreviewInfo, pastePreviewAnchor,
-      hoveredCanvasCell, isPenDrawing, isMiddleClickPanning, activeTool,
+      hoveredCanvasCell, toolGesture, toolPreviewPoints, activeKeyDefinition,
+      isMiddleClickPanning, activeTool,
       gutterLeft, gutterTop
   ]);
 
@@ -443,7 +440,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   }, [selectAllActiveLayerFlag, currentActiveLayerIdFromChartState, rows, cols, onSelectAllProcessed, onSelectionChange, activeLayer]);
 
 
-  const getCoordsFromMouseEvent = useCallback((event: React.MouseEvent | MouseEvent): Point | null => {
+  const getCoordsFromPointerEvent = useCallback((event: React.PointerEvent | PointerEvent): Point | null => {
     if (!canvasContainerRef.current) return null;
     const rect = canvasContainerRef.current.getBoundingClientRect();
     const mouseXInCanvas = event.clientX - rect.left;
@@ -453,19 +450,9 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     return { x: gridX, y: gridY };
   }, [viewOffset.x, viewOffset.y, gutterLeft, gutterTop, scaledCellSize]);
 
-  const handlePenAction = useCallback(async (coords: Point) => {
-    if (activeKeyId) {
-        const activeKeyDefinition = keyPalette.find(k => k.id === activeKeyId);
-        if (activeKeyDefinition) {
-            await redrawCellOnBaseCanvas(coords.y, coords.x, activeKeyDefinition);
-            onCellAction(coords, activeKeyDefinition);
-        }
-    }
-  }, [activeKeyId, keyPalette, onCellAction, redrawCellOnBaseCanvas]);
-
-  const handleCanvasMouseDown = async (event: React.MouseEvent) => {
+  const handleCanvasPointerDown = (event: React.PointerEvent) => {
     setContextMenu(null);
-    const coords = getCoordsFromMouseEvent(event);
+    const coords = getCoordsFromPointerEvent(event);
     if (!coords) return;
     const isOverGridCellsArea = coords.x >= 0 && coords.x < cols && coords.y >= 0 && coords.y < rows;
 
@@ -482,11 +469,20 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
 
     if (isOverGridCellsArea) {
         if (event.button === 0) { // Left click
+          event.currentTarget.setPointerCapture(event.pointerId);
           if (activeTool === Tool.Pen) {
-            setIsPenDrawing(true);
-            onPenDragSessionStart();
-            await handlePenAction(coords); // Await the first action
-            onPenDragSessionContinue();
+            if (activeKeyDefinition) {
+              setToolGesture({ tool: Tool.Pen, start: coords, current: coords, points: [coords] });
+            }
+          } else if (activeTool === Tool.Line || activeTool === Tool.Rectangle) {
+            if (activeKeyIsSolid) {
+              setToolGesture({ tool: activeTool, start: coords, current: coords, points: [coords] });
+            }
+          } else if (activeTool === Tool.Fill) {
+            if (activeLayer && activeKeyDefinition && activeKeyIsSolid) {
+              const points = floodFillPoints(activeLayer, keyPalette, coords, rows, cols, activeKeyDefinition);
+              onToolPointsCommit(points, activeKeyDefinition);
+            }
           } else if (activeTool === Tool.Select) {
             let clickedInsideCurrentSelection = false;
             const normSel = selection ? {
@@ -533,9 +529,8 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
             } else {
                 onSelectionChange({ start: coords, end: coords }, true, coords);
             }
-            setIsPenDrawing(false);
           } else if (activeTool === Tool.Move) {
-            setIsPenDrawing(false); setPanStart({x: event.clientX, y: event.clientY });
+            setPanStart({x: event.clientX, y: event.clientY });
           }
         } else if (event.button === 1) { // Middle click
           event.preventDefault(); setIsMiddleClickPanning(true); setPanStart({x: event.clientX, y: event.clientY});
@@ -545,7 +540,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
             if (activeTool === Tool.Select && selection) {
                 onSelectionChange(null, false, undefined); // Clear selection
             } else if (activeTool === Tool.Move) {
-                setIsPenDrawing(false); setPanStart({x: event.clientX, y: event.clientY });
+                setPanStart({x: event.clientX, y: event.clientY });
             }
         } else if (event.button === 1) { // Middle click
             event.preventDefault(); setIsMiddleClickPanning(true); setPanStart({x: event.clientX, y: event.clientY});
@@ -553,7 +548,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
     }
   };
 
-  const handleCanvasMouseMove = (event: React.MouseEvent) => {
+  const handleCanvasPointerMove = (event: React.PointerEvent) => {
     if (canvasContainerRef.current) {
         const rect = canvasContainerRef.current.getBoundingClientRect();
         const mouseXInCanvas = event.clientX - rect.left;
@@ -566,7 +561,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         };
     }
 
-    const coords = getCoordsFromMouseEvent(event);
+    const coords = getCoordsFromPointerEvent(event);
     if (!coords) { onHoveredCellChange(null); return; }
 
     const isOverGridCellsArea = coords.x >= 0 && coords.x < cols && coords.y >= 0 && coords.y < rows;
@@ -602,7 +597,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
 
 
     if (isOverGridCellsArea && !newHoveredGutter) {
-        if(!isActuallyDraggingSel && !isPenDrawing && !isActuallyDrawingSel && activeTool !== Tool.Move) onHoveredCellChange(coords);
+        if(!isActuallyDraggingSel && !toolGesture && !isActuallyDrawingSel && activeTool !== Tool.Move) onHoveredCellChange(coords);
         else onHoveredCellChange(null);
         if (isPreviewingPaste) onPastePreviewMove(coords);
     } else if (!newHoveredGutter) {
@@ -625,32 +620,63 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         const dx = event.clientX - panStart.x; const dy = event.clientY - panStart.y;
         onViewOffsetChange({ x: viewOffset.x + dx, y: viewOffset.y + dy });
         setPanStart({x: event.clientX, y: event.clientY});
-    } else if (isPenDrawing && isOverGridCellsArea && activeTool === Tool.Pen) {
-         handlePenAction(coords);
+    } else if (toolGesture && isOverGridCellsArea) {
+      if (toolGesture.tool === Tool.Pen) {
+        setToolGesture((current) => current ? {
+          ...current,
+          current: coords,
+          points: appendContinuousStroke(current.points, coords, current.current),
+        } : current);
+      } else {
+        setToolGesture((current) => current ? { ...current, current: coords } : current);
+      }
     }
   };
 
-  const handleGlobalMouseUp = useCallback((event: MouseEvent) => {
-    if (isPenDrawing) {
-      setIsPenDrawing(false);
-      onPenDragSessionEnd(); // Signal App: drag has ended
+  const handleGlobalPointerUp = useCallback((event: PointerEvent) => {
+    if (toolGesture && activeKeyDefinition) {
+      const finalCoords = getCoordsFromPointerEvent(event);
+      let points = toolPreviewPoints;
+      if (finalCoords && finalCoords.x >= 0 && finalCoords.x < cols && finalCoords.y >= 0 && finalCoords.y < rows) {
+        if (toolGesture.tool === Tool.Pen) {
+          points = appendContinuousStroke(toolGesture.points, finalCoords, toolGesture.current);
+        } else if (toolGesture.tool === Tool.Line) {
+          points = rasterLine(toolGesture.start, finalCoords);
+        } else {
+          points = rasterRectangle(toolGesture.start, finalCoords);
+        }
+      }
+      onToolPointsCommit(points, activeKeyDefinition);
+      setToolGesture(null);
     }
     if (isMiddleClickPanning) setIsMiddleClickPanning(false);
     if (panStart) setPanStart(null);
-    const coords = getCoordsFromMouseEvent(event);
+    const coords = getCoordsFromPointerEvent(event);
 
     if (isActuallyDraggingSel && dragPreviewSnappedGridPosition) {
-        onSelectionDragEnd(dragPreviewSnappedGridPosition, event as unknown as React.MouseEvent);
+        onSelectionDragEnd(dragPreviewSnappedGridPosition, event);
     } else if (isActuallyDrawingSel && selectionDragAnchorForCanvas) {
         const finalCoords = coords ? {x: Math.max(0, Math.min(cols - 1, coords.x)), y: Math.max(0, Math.min(rows - 1, coords.y))} : selectionDragAnchorForCanvas;
         onSelectionChange({ start: selectionDragAnchorForCanvas, end: finalCoords}, false, finalCoords);
     }
-  }, [isPenDrawing, isMiddleClickPanning, panStart, isActuallyDraggingSel, onSelectionDragEnd, dragPreviewSnappedGridPosition, isActuallyDrawingSel, selectionDragAnchorForCanvas, onSelectionChange, cols, rows, getCoordsFromMouseEvent, onPenDragSessionEnd]);
+  }, [toolGesture, activeKeyDefinition, toolPreviewPoints, isMiddleClickPanning, panStart, isActuallyDraggingSel, onSelectionDragEnd, dragPreviewSnappedGridPosition, isActuallyDrawingSel, selectionDragAnchorForCanvas, onSelectionChange, cols, rows, getCoordsFromPointerEvent, onToolPointsCommit]);
 
   useEffect(() => {
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, [handleGlobalMouseUp]);
+    document.addEventListener('pointerup', handleGlobalPointerUp);
+    return () => document.removeEventListener('pointerup', handleGlobalPointerUp);
+  }, [handleGlobalPointerUp]);
+
+  useEffect(() => {
+    setToolGesture(null);
+  }, [activeTool]);
+
+  useEffect(() => {
+    const cancelGesture = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setToolGesture(null);
+    };
+    document.addEventListener('keydown', cancelGesture);
+    return () => document.removeEventListener('keydown', cancelGesture);
+  }, []);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -724,6 +750,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   let cursorStyle = 'crosshair';
   if (activeTool === Tool.Select && !isActuallyDrawingSel) cursorStyle = isActuallyDraggingSel ? 'grabbing' : 'cell';
   else if (activeTool === Tool.Move || isMiddleClickPanning) cursorStyle = (isMiddleClickPanning || (activeTool === Tool.Move && panStart)) ? 'grabbing' : 'grab';
+  else if ((activeTool === Tool.Line || activeTool === Tool.Rectangle || activeTool === Tool.Fill) && !activeKeyIsSolid) cursorStyle = 'not-allowed';
   if (isPreviewingPaste) cursorStyle = 'copy';
 
   const getRowColDisplayNumber = (index: number, type: 'row' | 'col'): { displayNumber: number, isPrimaryDirection: boolean } => {
@@ -759,9 +786,9 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
       className="w-full h-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden relative select-none touch-none"
       style={{ cursor: cursorStyle }}
       onContextMenu={handleContextMenu}
-      onMouseMove={handleCanvasMouseMove}
-      onMouseDown={handleCanvasMouseDown}
-      onMouseLeave={() => { onHoveredCellChange(null); setHoveredGutterInfo(null); if(isPenDrawing) {setIsPenDrawing(false); onPenDragSessionEnd();} }}
+      onPointerMove={handleCanvasPointerMove}
+      onPointerDown={handleCanvasPointerDown}
+      onPointerLeave={() => { onHoveredCellChange(null); setHoveredGutterInfo(null); }}
       aria-label="Colorwork chart canvas"
       role="application"
     >

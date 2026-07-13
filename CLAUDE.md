@@ -22,6 +22,7 @@ npm run build      # Build for production
 npm run preview    # Preview production build
 npm run typecheck  # TypeScript only
 npm test           # Focused contract/persistence tests
+npm run test:e2e  # Desktop/mobile browser acceptance
 npm run verify     # TypeScript + tests + production build
 ```
 
@@ -62,8 +63,9 @@ Start here to understand the codebase:
 4. **`components/KnitCanvas.tsx`** - Most complex component, handles canvas rendering and user input
 5. **`components/BlockEditorModal.tsx`** - Reusable multi-color tile authoring
 6. **`services/colorworkExportService.ts`** - Flattened JSON + exact PNG export
-7. **`canvasUtils.ts`** - Performance optimizations via symbol caching
-8. **`lib/colorwork-chart-v1.ts`** - Untrusted-file parser for the Studio handoff
+7. **`lib/colorworkTools.ts`** - Pure drawing-tool geometry
+8. **`canvasUtils.ts`** - Performance optimizations via symbol caching
+9. **`lib/colorwork-chart-v1.ts`** - Untrusted-file parser for the Studio handoff
 
 ### Important Patterns
 
@@ -88,5 +90,7 @@ currentState.sheets = updatedSheets;
 - **Styling:** All styling uses Tailwind CSS, bundled via PostCSS. Config is in `tailwind.config.cjs`
 - **No backend:** image quantization, persistence, and exports all run client-side
 - **Data persistence:** browser autosave plus explicit `.knitlab` download/open
+- **Drawing previews:** keep gesture previews local to `KnitCanvas`; commit once
+  through `colorworkMutationService` on pointer release
 - **Interchange:** keep `schemas/colorwork-chart-v1.schema.json` and the shared
   four-color fixture byte-identical with the Kniterate Studio copy

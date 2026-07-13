@@ -6,12 +6,15 @@ import {
 import {
   clearColorworkRegion,
   commitColorworkMutation,
+  commitSolidColorMutation,
   deleteColorworkColumn,
   deleteColorworkRow,
   insertColorworkColumn,
   insertColorworkRow,
   moveColorworkPlacements,
   opsForTiledSelection,
+  placementsFullyContainedInRegion,
+  removeColorworkPlacements,
   resizeColorworkLayer,
 } from '../services/colorworkMutationService';
 import type { KeyDefinition, Layer } from '../types';
@@ -168,5 +171,37 @@ describe('colorwork mutation core', () => {
       { keyId: red.id, anchor: { x: 4, y: 5 } },
     ]);
     expect(resizeColorworkLayer(original, 2, 2, palette).keyPlacements).toEqual([]);
+  });
+
+  it('does not copy or cut a reusable block that is only partly selected', () => {
+    const original = layerWith([
+      { keyId: block.id, anchor: { x: 1, y: 1 } },
+      { keyId: red.id, anchor: { x: 4, y: 4 } },
+    ]);
+    const contained = placementsFullyContainedInRegion(
+      original,
+      { start: { x: 2, y: 2 }, end: { x: 4, y: 4 } },
+      palette,
+    );
+    expect(contained).toEqual([{ keyId: red.id, anchor: { x: 4, y: 4 } }]);
+    expect(removeColorworkPlacements(original, contained, 6, 6, palette).keyPlacements).toEqual([
+      { keyId: block.id, anchor: { x: 1, y: 1 } },
+    ]);
+  });
+
+  it('batch-paints solid cells while removing touched block owners', () => {
+    const original = layerWith([{ keyId: block.id, anchor: { x: 1, y: 1 } }]);
+    const result = commitSolidColorMutation({
+      layer: original,
+      key: red,
+      points: [{ x: 2, y: 2 }, { x: 4, y: 4 }, { x: 4, y: 4 }],
+      chartRows: 6,
+      chartCols: 6,
+      palette,
+    });
+    expect(result.ok && result.layer.keyPlacements).toEqual([
+      { keyId: red.id, anchor: { x: 2, y: 2 } },
+      { keyId: red.id, anchor: { x: 4, y: 4 } },
+    ]);
   });
 });

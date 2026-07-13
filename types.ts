@@ -82,6 +82,9 @@ export interface ChartState {
 
 export enum Tool {
   Pen = 'pen',
+  Line = 'line',
+  Rectangle = 'rectangle',
+  Fill = 'fill',
   Select = 'select',
   Move = 'move',
 }

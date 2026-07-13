@@ -2,7 +2,7 @@
 import React from 'react';
 import { Tool } from '../types';
 import { Button } from './Button';
-import { PenIcon, SelectIcon, MoveIcon, CopyIcon, CutIcon, PasteIcon } from './Icon';
+import { PenIcon, LineIcon, RectangleIcon, FillIcon, SelectIcon, MoveIcon, CopyIcon, CutIcon, PasteIcon } from './Icon';
 
 interface FloatingToolPaletteProps {
   activeTool: Tool;
@@ -19,6 +19,7 @@ interface FloatingToolPaletteProps {
   canCopy: boolean;
   canCut: boolean;
   canPaste: boolean;
+  activeKeyIsSolid: boolean;
 }
 
 interface ToolDefinition {
@@ -38,10 +39,14 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
     canCopy,
     canCut,
     canPaste,
+    activeKeyIsSolid,
 }, ref) => {
 
   const mainTools: ToolDefinition[] = [
     { tool: Tool.Pen, label: 'Paint color', icon: <PenIcon /> },
+    { tool: Tool.Line, label: 'Draw line', icon: <LineIcon />, disabled: !activeKeyIsSolid },
+    { tool: Tool.Rectangle, label: 'Draw rectangle', icon: <RectangleIcon />, disabled: !activeKeyIsSolid },
+    { tool: Tool.Fill, label: 'Flood fill', icon: <FillIcon />, disabled: !activeKeyIsSolid },
   ];
 
   const selectAndClipboardTools: ToolDefinition[] = [
@@ -79,8 +84,8 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
   );
 
   return (
-    <div ref={ref} className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 print:hidden">
-      <div className="flex flex-col items-center space-y-1">
+    <div ref={ref} className="fixed inset-x-0 bottom-0 z-20 overflow-x-auto px-2 pb-2 print:hidden md:bottom-4 md:flex md:justify-center md:pb-0">
+      <div className="w-max flex flex-col items-center space-y-1">
         <div className="flex items-center space-x-1 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-lg shadow-xl border border-neutral-300 dark:border-neutral-700">
           {renderButtonGroup(mainTools, "Main Tools")}
           <div className="h-8 border-l border-neutral-300 dark:border-neutral-600 mx-1"></div>

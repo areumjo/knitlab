@@ -10,7 +10,7 @@ import { FloatingToolPalette } from './components/FloatingToolPalette';
 import { TopRibbon, KeyUsageData } from './components/TopRibbon';
 import { MiniMap } from './components/MiniMap';
 import { ExportPreviewModal } from './components/ExportPreviewModal';
-import { Tool, Layer, ChartState, Point, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ApplicationState, ClipboardData, KeyDefinition, ChartDisplaySettings, ProcessedImageData, StitchSymbolDef } from './types';
+import { Tool, Layer, ChartState, Point, SelectionRect, TabId, DraggedCellsInfo, KeyInstance, ClipboardData, KeyDefinition, ChartDisplaySettings, ProcessedImageData, StitchSymbolDef } from './types';
 import {
   INITIAL_APPLICATION_STATE,
   INITIAL_CHART_STATE,
@@ -40,6 +40,7 @@ import { sanitizeColorworkState } from './lib/colorworkState';
 import {
   clearColorworkRegion,
   commitColorworkMutation,
+  commitSolidColorMutation,
   deleteColorworkColumn,
   deleteColorworkRow,
   insertColorworkColumn,
@@ -47,16 +48,14 @@ import {
   moveColorworkPlacements,
   opsForTiledSelection,
   pasteColorworkPlacements,
+  placementsFullyContainedInRegion,
+  removeColorworkPlacements,
   resizeColorworkLayer,
 } from './services/colorworkMutationService';
 
 const MINIMAP_MAX_WIDTH = 200;
 const MINIMAP_MAX_HEIGHT = 200;
-const FOOTER_DEFAULT_BOTTOM = '8px';
 const MINIMAP_DEFAULT_BOTTOM = '8px';
-const RESPONSIVE_BREAKPOINT = 768; // md breakpoint for lifting elements
-const MINIMAP_SIDE_MARGIN = 8; // Gap between sidebar and minimap, and minimap and screen edge (if applicable)
-const ICON_RIBBON_WIDTH_CONST = 56; // From TabbedSidebar
 const COLORWORK_SYMBOLS: StitchSymbolDef[] = [];
 
 export const App: React.FC = () => {
@@ -66,7 +65,6 @@ export const App: React.FC = () => {
     recordChange: recordAppChange,
     undo, redo, canUndo, canRedo,
     resetHistory: resetAppHistory,
-    updateCurrentState,
   } = useChartHistory(initialAutosave?.state ?? INITIAL_APPLICATION_STATE);
 
   const activeSheet = applicationState.sheets.find(s => s.id === applicationState.activeSheetId) || applicationState.sheets[0] || INITIAL_CHART_STATE;
@@ -412,28 +410,6 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  const modifyActiveSheetLayerWithModifier = (
-    prevAppState: ApplicationState,
-    modifier: (layer: Layer, chartRows: number, chartCols: number, keyPalette: KeyDefinition[]) => Layer | null
-  ): ApplicationState => {
-    const activeSheetIndex = prevAppState.sheets.findIndex(s => s.id === prevAppState.activeSheetId);
-    if (activeSheetIndex === -1) return prevAppState;
-    const oldActiveSheet = prevAppState.sheets[activeSheetIndex];
-    if (!oldActiveSheet.activeLayerId) return prevAppState;
-    const activeLayerIndex = oldActiveSheet.layers.findIndex(l => l.id === oldActiveSheet.activeLayerId);
-    if (activeLayerIndex === -1) return prevAppState;
-    const oldLayer = oldActiveSheet.layers[activeLayerIndex];
-
-    const newLayer = modifier(oldLayer, oldActiveSheet.rows, oldActiveSheet.cols, prevAppState.keyPalette);
-
-    if (newLayer === null) return prevAppState; // No change
-    const newLayers = [...oldActiveSheet.layers];
-    newLayers[activeLayerIndex] = newLayer;
-    const newSheets = [...prevAppState.sheets];
-    newSheets[activeSheetIndex] = { ...oldActiveSheet, layers: newLayers };
-    return { ...prevAppState, sheets: newSheets };
-  };
-
   const handleChartSettingsSave = (settings: {
     rows: number;
     cols: number;
@@ -605,41 +581,26 @@ export const App: React.FC = () => {
     });
   };
 
-  const isCurrentlyDragPaintingRef = useRef(false);
-
-  const handlePenDragSessionStart = useCallback(() => {
-    isCurrentlyDragPaintingRef.current = false;
-  }, []);
-
-  const handlePenDragSessionContinue = useCallback(() => {
-    isCurrentlyDragPaintingRef.current = true;
-  }, []);
-
-  const handlePenDragSessionEnd = useCallback(() => {
-    isCurrentlyDragPaintingRef.current = false;
-  }, []);
-
-  const handleCellAction = (anchorCoords: Point, keyDefToApply: KeyDefinition | null) => {
-    setLastActionPoint(anchorCoords);
-    if (!keyDefToApply) return;
-
-    const modifier = (currentLayer: Layer, chartRows: number, chartCols: number, currentKeyPalette: KeyDefinition[]) => {
-      const result = commitColorworkMutation({
-        layer: currentLayer,
-        ops: [{ key: keyDefToApply, anchor: anchorCoords }],
-        chartRows,
-        chartCols,
-        palette: currentKeyPalette,
-      });
+  const handleToolPointsCommit = useCallback((points: readonly Point[], key: KeyDefinition) => {
+    if (points.length === 0) return;
+    setLastActionPoint(points[points.length - 1]);
+    modifyActiveSheetLayer((layer, chartRows, chartCols, palette) => {
+      const validPoints = points.filter((point) =>
+        point.x >= 0 && point.y >= 0 &&
+        point.x + key.width <= chartCols && point.y + key.height <= chartRows,
+      );
+      const result = key.width === 1 && key.height === 1
+        ? commitSolidColorMutation({ layer, key, points: validPoints, chartRows, chartCols, palette })
+        : commitColorworkMutation({
+            layer,
+            ops: validPoints.map((anchor) => ({ key, anchor })),
+            chartRows,
+            chartCols,
+            palette,
+          });
       return result.ok ? result.layer : null;
-    };
-
-    if (isCurrentlyDragPaintingRef.current) { // True only for subsequent drag points
-      updateCurrentState(prevAppState => modifyActiveSheetLayerWithModifier(prevAppState, modifier));
-    } else { // False for single click or first point of drag
-      recordAppChangeRef.current(prevAppState => modifyActiveSheetLayerWithModifier(prevAppState, modifier));
-    }
-  };
+    });
+  }, [modifyActiveSheetLayer]);
 
   const applyOrClearSelection = useCallback((applyActive: boolean) => {
     if (!selection || !activeSheet) return;
@@ -665,7 +626,7 @@ export const App: React.FC = () => {
   const applyActiveKeyToSelection = useCallback(() => applyOrClearSelection(true), [applyOrClearSelection]);
   const clearAllInCurrentSelection = useCallback(() => applyOrClearSelection(false), [applyOrClearSelection]);
 
-  const handleSelectionDragStart = (dragInfo: DraggedCellsInfo, initialGridPos: Point, _event: React.MouseEvent) => {
+  const handleSelectionDragStart = (dragInfo: DraggedCellsInfo, initialGridPos: Point, _event: React.PointerEvent) => {
     setIsDraggingSelection(true);
     setIsActuallyDrawingSel(false);
     setSelectionAnchorPoint(null);
@@ -673,14 +634,14 @@ export const App: React.FC = () => {
     setDragPreviewSnappedGridPosition(initialGridPos);
   };
 
-  const handleSelectionDragMove = (snappedGridPos: Point, _event: React.MouseEvent) => {
+  const handleSelectionDragMove = (snappedGridPos: Point, _event: React.PointerEvent) => {
     if (!isDraggingSelection || !draggedCellsInfo || !activeSheet) return;
     const clampedX = Math.max(0, Math.min(activeSheet.cols - draggedCellsInfo.width, snappedGridPos.x));
     const clampedY = Math.max(0, Math.min(activeSheet.rows - draggedCellsInfo.height, snappedGridPos.y));
     setDragPreviewSnappedGridPosition({ x: clampedX, y: clampedY });
   };
 
-  const handleSelectionDragEnd = (dropTarget: Point | null, _event: React.MouseEvent) => {
+  const handleSelectionDragEnd = (dropTarget: Point | null, _event: PointerEvent) => {
     if (!isDraggingSelection || !draggedCellsInfo || !dropTarget || !activeSheet.activeLayerId) {
       setIsDraggingSelection(false);
       setDraggedCellsInfo(null);
@@ -726,10 +687,10 @@ export const App: React.FC = () => {
     setDragPreviewSnappedGridPosition(null);
   };
 
-  const handleCopySelection = useCallback(() => {
-    if (!selection || !activeSheet || !activeSheet.activeLayerId || isPreviewingPaste) return;
+  const buildClipboardForSelection = useCallback((): ClipboardData | null => {
+    if (!selection || !activeSheet || !activeSheet.activeLayerId || isPreviewingPaste) return null;
     const currentActiveLayer = activeSheet.layers.find(l => l.id === activeSheet.activeLayerId);
-    if (!currentActiveLayer) return;
+    if (!currentActiveLayer) return null;
 
     const normSel = {
         start: { x: Math.min(selection.start.x, selection.end.x), y: Math.min(selection.start.y, selection.end.y) },
@@ -738,51 +699,47 @@ export const App: React.FC = () => {
     const selWidth = normSel.end.x - normSel.start.x + 1;
     const selHeight = normSel.end.y - normSel.start.y + 1;
 
-    const relativeKeyInstances: KeyInstance[] = [];
-    const sourceKeyDefIds = new Set<string>();
-
-    for (let rOffset = 0; rOffset < selHeight; rOffset++) {
-        for (let cOffset = 0; cOffset < selWidth; cOffset++) {
-            const chartR = normSel.start.y + rOffset;
-            const chartC = normSel.start.x + cOffset;
-            const cell = currentActiveLayer.grid[chartR]?.[chartC];
-
-            if (cell?.keyId && cell.keyId !== KEY_ID_KNIT_DEFAULT) {
-                const keyDef = applicationState.keyPalette.find(k => k.id === cell.keyId);
-                if (keyDef) {
-                    if (cell?.isAnchorCellForMxN || (keyDef.width === 1 && keyDef.height === 1)) {
-                        const fitsSelection = cOffset + keyDef.width <= selWidth &&
-                            rOffset + keyDef.height <= selHeight;
-                        if (!fitsSelection) continue;
-                        const existing = relativeKeyInstances.find(
-                            ki => ki.anchor.x === cOffset && ki.anchor.y === rOffset
-                        );
-                        if (!existing) {
-                            relativeKeyInstances.push({
-                                anchor: { y: rOffset, x: cOffset },
-                                keyId: cell.keyId
-                            });
-                            sourceKeyDefIds.add(cell.keyId);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    const containedPlacements = placementsFullyContainedInRegion(
+      currentActiveLayer,
+      normSel,
+      applicationState.keyPalette,
+    ).filter((placement) => placement.keyId !== KEY_ID_KNIT_DEFAULT);
+    const relativeKeyInstances = containedPlacements.map((placement) => ({
+      keyId: placement.keyId,
+      anchor: {
+        x: placement.anchor.x - normSel.start.x,
+        y: placement.anchor.y - normSel.start.y,
+      },
+    }));
+    const sourceKeyDefIds = new Set(containedPlacements.map((placement) => placement.keyId));
     const sourceKeyDefinitions = Array.from(sourceKeyDefIds)
         .map(id => applicationState.keyPalette.find(k => k.id === id))
         .filter(Boolean) as KeyDefinition[];
 
-    setClipboardContent({ relativeKeyInstances, width: selWidth, height: selHeight, sourceKeyDefinitions });
+    return { relativeKeyInstances, width: selWidth, height: selHeight, sourceKeyDefinitions };
   }, [selection, activeSheet, applicationState.keyPalette, isPreviewingPaste]);
+
+  const handleCopySelection = useCallback(() => {
+    const clipboard = buildClipboardForSelection();
+    if (clipboard) setClipboardContent(clipboard);
+  }, [buildClipboardForSelection]);
 
   const handleCutSelection = useCallback(() => {
     if (!selection || !activeSheet || !activeSheet.activeLayerId || isPreviewingPaste) return;
-    handleCopySelection();
-    modifyActiveSheetLayer((currentLayer, chartRows, chartCols, currentKeyPalette) =>
-      clearColorworkRegion(currentLayer, selection, chartRows, chartCols, currentKeyPalette),
-    );
-  }, [handleCopySelection, selection, activeSheet, isPreviewingPaste, modifyActiveSheetLayer]);
+    const clipboard = buildClipboardForSelection();
+    if (!clipboard) return;
+    setClipboardContent(clipboard);
+    modifyActiveSheetLayer((currentLayer, chartRows, chartCols, currentKeyPalette) => {
+      const placements = placementsFullyContainedInRegion(currentLayer, selection, currentKeyPalette);
+      return removeColorworkPlacements(
+        currentLayer,
+        placements,
+        chartRows,
+        chartCols,
+        currentKeyPalette,
+      );
+    });
+  }, [buildClipboardForSelection, selection, activeSheet, isPreviewingPaste, modifyActiveSheetLayer]);
 
   const _performActualPaste = (
     targetOrigin: Point,
@@ -1270,41 +1227,6 @@ export const App: React.FC = () => {
     setIsImageProcessorModalOpen(false);
   };
 
-  const [dynamicBottomStyle, setDynamicBottomStyle] = useState({ miniMap: MINIMAP_DEFAULT_BOTTOM, footer: FOOTER_DEFAULT_BOTTOM });
-  const floatingToolbarRef = useRef<HTMLDivElement>(null);
-  const [sidebarActualWidth, setSidebarActualWidth] = useState(ICON_RIBBON_WIDTH_CONST);
-
-  useEffect(() => {
-    const calculateBottoms = () => {
-        const paletteHeight = floatingToolbarRef.current?.offsetHeight || 0;
-        const gap = 8;
-        const screenWidth = window.innerWidth;
-
-        if (screenWidth < RESPONSIVE_BREAKPOINT && paletteHeight > 0) {
-            const liftedBottomValue = `${paletteHeight + gap + 4}px`; // 4px is toolbar's own bottom
-            setDynamicBottomStyle({ miniMap: liftedBottomValue, footer: liftedBottomValue });
-        } else {
-            setDynamicBottomStyle({ miniMap: MINIMAP_DEFAULT_BOTTOM, footer: FOOTER_DEFAULT_BOTTOM });
-        }
-    };
-    calculateBottoms();
-    window.addEventListener('resize', calculateBottoms);
-
-    const toolbarElement = floatingToolbarRef.current;
-    let observer: ResizeObserver | undefined;
-    if (toolbarElement) {
-        observer = new ResizeObserver(calculateBottoms);
-        observer.observe(toolbarElement);
-    }
-
-    return () => {
-        window.removeEventListener('resize', calculateBottoms);
-        if (observer && toolbarElement) {
-            observer.unobserve(toolbarElement);
-        }
-    };
-  }, []);
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1320,10 +1242,20 @@ export const App: React.FC = () => {
       }
 
       // Tool shortcuts
-      if (event.key.toLowerCase() === 'a' && !event.ctrlKey && !event.metaKey) {
+      const shortcut = event.key.toLowerCase();
+      if ((shortcut === 'a' || shortcut === 'p') && !event.ctrlKey && !event.metaKey) {
         event.preventDefault();
         setActiveTool(Tool.Pen);
-      } else if (event.key.toLowerCase() === 's' && !event.ctrlKey && !event.metaKey) {
+      } else if (shortcut === 'l' && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        setActiveTool(Tool.Line);
+      } else if (shortcut === 'r' && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        setActiveTool(Tool.Rectangle);
+      } else if (shortcut === 'f' && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        setActiveTool(Tool.Fill);
+      } else if (shortcut === 's' && !event.ctrlKey && !event.metaKey) {
         event.preventDefault();
         setActiveTool(Tool.Select);
       } else if (event.key === 'Escape') {
@@ -1459,7 +1391,6 @@ export const App: React.FC = () => {
           isSidebarContentVisible={isSidebarContentVisible}
           onToggleSidebarContentVisibility={toggleSidebarContentVisibility}
           onOpenImageProcessor={() => setIsImageProcessorModalOpen(true)}
-          onActualWidthChange={setSidebarActualWidth}
         />
         <main ref={mainCanvasWrapperRef} className="relative flex min-h-0 flex-grow items-center justify-center overflow-hidden">
           {canvasContainerSize.width > 0 && canvasContainerSize.height > 0 && activeSheet && (
@@ -1484,7 +1415,7 @@ export const App: React.FC = () => {
               dragPreviewSnappedGridPosition={dragPreviewSnappedGridPosition}
 
               onSelectionChange={handleSelectionChangeFromCanvas}
-              onCellAction={handleCellAction}
+              onToolPointsCommit={handleToolPointsCommit}
               onSelectionDragStart={handleSelectionDragStart}
               onSelectionDragMove={handleSelectionDragMove}
               onSelectionDragEnd={handleSelectionDragEnd}
@@ -1515,16 +1446,13 @@ export const App: React.FC = () => {
               onPastePreviewCancel={handlePastePreviewCancel}
               activeKeyId={activeKeyId}
 
-              onPenDragSessionStart={handlePenDragSessionStart}
-              onPenDragSessionContinue={handlePenDragSessionContinue}
-              onPenDragSessionEnd={handlePenDragSessionEnd}
             />
           )}
             <div
               className="fixed z-10 hidden opacity-80 transition-opacity hover:opacity-100 md:block"
               style={{
-                bottom: dynamicBottomStyle.miniMap,
-                left: `${sidebarActualWidth + MINIMAP_SIDE_MARGIN}px`,
+                bottom: MINIMAP_DEFAULT_BOTTOM,
+                right: '16px',
                 width: `${MINIMAP_MAX_WIDTH}px`,
                 height: `${MINIMAP_MAX_HEIGHT}px`
               }}
@@ -1551,7 +1479,6 @@ export const App: React.FC = () => {
       </div>
 
       <FloatingToolPalette
-        ref={floatingToolbarRef}
         activeTool={activeTool}
         onToolSelect={setActiveTool}
         isSelectionActive={!!selection}
@@ -1564,16 +1491,11 @@ export const App: React.FC = () => {
         canCopy={!!selection}
         canCut={!!selection}
         canPaste={!!clipboardContent}
+        activeKeyIsSolid={applicationState.keyPalette.some((key) =>
+          key.id === activeKeyId && key.width === 1 && key.height === 1,
+        )}
       />
 
-      <footer
-        className="fixed right-2 z-10 hidden p-2 text-right text-xs text-neutral-500 transition-all duration-150 ease-in-out dark:text-neutral-400 md:block font-areumFooter"
-        style={{ bottom: dynamicBottomStyle.footer }}
-        aria-label="Application Footer"
-      >
-        © 2026 Areum Knits. All rights reserved.<br/>
-        Crafted with ❤️ and code.
-      </footer>
       {isBlockEditorOpen && (
         <BlockEditorModal
           isOpen={isBlockEditorOpen}

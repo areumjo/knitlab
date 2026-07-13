@@ -25,6 +25,11 @@ interface MutationInput {
   palette: readonly KeyDefinition[];
 }
 
+interface SolidMutationInput extends Omit<MutationInput, 'ops'> {
+  key: KeyDefinition;
+  points: readonly Point[];
+}
+
 export type ColorworkMutationResult =
   | { ok: true; layer: Layer }
   | { ok: false; reason: string };
@@ -65,12 +70,51 @@ function normalizedFootprint(selection: SelectionRect): Footprint {
   };
 }
 
+function footprintContains(outer: Footprint, inner: Footprint): boolean {
+  return inner.minR >= outer.minR && inner.maxR <= outer.maxR &&
+    inner.minC >= outer.minC && inner.maxC <= outer.maxC;
+}
+
 function footprintForPlacement(
   placement: KeyInstance,
   palette: readonly KeyDefinition[],
 ): Footprint | null {
   const key = palette.find((candidate) => candidate.id === placement.keyId);
   return key ? calculateFootprint(placement.anchor, key) : null;
+}
+
+/** Returns only complete placement owners contained by a selection. */
+export function placementsFullyContainedInRegion(
+  layer: Layer,
+  selection: SelectionRect,
+  palette: readonly KeyDefinition[],
+): KeyInstance[] {
+  const region = normalizedFootprint(selection);
+  return layer.keyPlacements.filter((placement) => {
+    const footprint = footprintForPlacement(placement, palette);
+    return footprint ? footprintContains(region, footprint) : false;
+  });
+}
+
+/** Removes an explicit set of placement owners without touching partial neighbours. */
+export function removeColorworkPlacements(
+  layer: Layer,
+  placementsToRemove: readonly KeyInstance[],
+  chartRows: number,
+  chartCols: number,
+  palette: readonly KeyDefinition[],
+): Layer {
+  const owners = new Set(placementsToRemove.map((placement) =>
+    `${placement.keyId}:${placement.anchor.x}:${placement.anchor.y}`,
+  ));
+  const placements = layer.keyPlacements.filter((placement) =>
+    !owners.has(`${placement.keyId}:${placement.anchor.x}:${placement.anchor.y}`),
+  );
+  return {
+    ...layer,
+    keyPlacements: placements,
+    grid: buildGridFromKeyPlacements(placements, chartRows, chartCols, [...palette]),
+  };
 }
 
 /**
@@ -111,6 +155,49 @@ export function commitColorworkMutation(input: MutationInput): ColorworkMutation
     // hundreds of redundant 1x1 placements.
     if (op.key.id !== KEY_ID_KNIT_DEFAULT) {
       placements.push({ keyId: op.key.id, anchor: { ...op.anchor } });
+    }
+  }
+
+  return {
+    ok: true,
+    layer: {
+      ...layer,
+      keyPlacements: placements,
+      grid: buildGridFromKeyPlacements(placements, chartRows, chartCols, [...palette]),
+    },
+  };
+}
+
+/** Efficient owner-aware batch paint for a solid 1x1 color. */
+export function commitSolidColorMutation(input: SolidMutationInput): ColorworkMutationResult {
+  const { layer, key, points, chartRows, chartCols, palette } = input;
+  const canonicalKey = palette.find((candidate) => candidate.id === key.id);
+  if (!canonicalKey || canonicalKey.width !== 1 || canonicalKey.height !== 1) {
+    return { ok: false, reason: 'Solid-color tools require a 1x1 color.' };
+  }
+
+  const uniquePoints = new Map<string, Point>();
+  for (const point of points) {
+    if (point.x < 0 || point.x >= chartCols || point.y < 0 || point.y >= chartRows) continue;
+    uniquePoints.set(`${point.x}:${point.y}`, { ...point });
+  }
+  if (uniquePoints.size === 0) return { ok: true, layer };
+
+  const touched = new Set(uniquePoints.keys());
+  const placements = layer.keyPlacements.filter((placement) => {
+    const footprint = footprintForPlacement(placement, palette);
+    if (!footprint) return false;
+    for (let y = footprint.minR; y <= footprint.maxR; y += 1) {
+      for (let x = footprint.minC; x <= footprint.maxC; x += 1) {
+        if (touched.has(`${x}:${y}`)) return false;
+      }
+    }
+    return true;
+  });
+
+  if (canonicalKey.id !== KEY_ID_KNIT_DEFAULT) {
+    for (const point of uniquePoints.values()) {
+      placements.push({ keyId: canonicalKey.id, anchor: point });
     }
   }
 

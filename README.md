@@ -8,7 +8,7 @@ and does not require an account or backend.
 
 ## Product scope
 
-- exact cell-level color painting
+- continuous pen, line, outline-rectangle, and flood-fill drawing
 - reusable multi-color blocks
 - selection, move, copy/paste, and undo/redo
 - image-to-palette reduction
@@ -32,6 +32,6 @@ npm run dev
 npm run verify
 ```
 
-`npm run verify` runs TypeScript, focused contract/persistence tests, and the
-production Vite build. Pushing `main` deploys the verified static build to the
-`gh-pages` branch.
+`npm run verify` runs TypeScript, focused editor/contract tests, and the
+production Vite build. Pull requests run the same gate plus browser acceptance;
+pushing `main` deploys the verified static build to the `gh-pages` branch.
