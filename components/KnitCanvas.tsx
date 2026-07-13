@@ -97,6 +97,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   const interactionCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const currentMousePositionRef = useRef<{ xInCanvas: number, yInCanvas: number, xInPannable: number, yInPannable: number } | null>(null);
+  const wheelZoomDeltaRef = useRef(0);
 
 
   const [toolGesture, setToolGesture] = useState<ToolGesture | null>(null);
@@ -681,17 +682,41 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const zoomDirection = e.deltaY < 0 ? 1 : -1;
-      const currentZoomIndex = effectiveZoomLevels.indexOf(zoomLevel);
-      let newZoomIndex = currentZoomIndex + zoomDirection;
-
-      newZoomIndex = Math.max(0, Math.min(effectiveZoomLevels.length - 1, newZoomIndex));
-
-      if (effectiveZoomLevels[newZoomIndex] !== zoomLevel) {
-        setZoomLevel(effectiveZoomLevels[newZoomIndex]);
-      } else {
+      if (!e.ctrlKey && !e.metaKey) {
+        wheelZoomDeltaRef.current = 0;
         onViewOffsetChange({ x: viewOffset.x - e.deltaX, y: viewOffset.y - e.deltaY });
+        return;
       }
+
+      const deltaScale = e.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? 16
+        : e.deltaMode === WheelEvent.DOM_DELTA_PAGE
+          ? canvasSize.height
+          : 1;
+      wheelZoomDeltaRef.current += e.deltaY * deltaScale;
+      if (Math.abs(wheelZoomDeltaRef.current) < 64) return;
+
+      const zoomDirection = wheelZoomDeltaRef.current < 0 ? 1 : -1;
+      wheelZoomDeltaRef.current = 0;
+      const currentZoomIndex = effectiveZoomLevels.indexOf(zoomLevel);
+      const newZoomIndex = Math.max(0, Math.min(
+        effectiveZoomLevels.length - 1,
+        currentZoomIndex + zoomDirection,
+      ));
+      const nextZoom = effectiveZoomLevels[newZoomIndex];
+      if (nextZoom === zoomLevel) return;
+
+      const rect = canvasElement?.getBoundingClientRect();
+      if (rect) {
+        const pointerX = e.clientX - rect.left;
+        const pointerY = e.clientY - rect.top;
+        const scale = nextZoom / zoomLevel;
+        onViewOffsetChange({
+          x: pointerX - (pointerX - viewOffset.x) * scale,
+          y: pointerY - (pointerY - viewOffset.y) * scale,
+        });
+      }
+      setZoomLevel(nextZoom);
     };
 
     const canvasElement = canvasContainerRef.current;
@@ -704,7 +729,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
         canvasElement.removeEventListener('wheel', handleWheel);
       }
     };
-  }, [effectiveZoomLevels, zoomLevel, setZoomLevel, viewOffset, onViewOffsetChange]);
+  }, [canvasSize.height, effectiveZoomLevels, zoomLevel, setZoomLevel, viewOffset, onViewOffsetChange]);
 
   const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();

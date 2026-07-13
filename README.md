@@ -1,8 +1,8 @@
-# KnitLab Chart
+# KnitLab
 
 [![Deploy to GitHub Pages](https://github.com/areumjo/knitlab/actions/workflows/deploy.yml/badge.svg)](https://github.com/areumjo/knitlab/actions/workflows/deploy.yml)
 
-KnitLab Chart is a focused, static colorwork chart editor. It runs entirely in
+KnitLab is a focused, static colorwork chart editor. It runs entirely in
 the browser at [areumjo.github.io/knitlab](https://areumjo.github.io/knitlab/)
 and does not require an account or backend.
 

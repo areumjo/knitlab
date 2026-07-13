@@ -187,7 +187,7 @@ export const TopRibbon: React.FC<KeyPaletteProps> = ({
   });
 
   return (
-    <div className="bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 p-1.5 flex items-end space-x-1.5 print:hidden overflow-x-auto overflow-y-hidden custom-scrollbar flex-shrink-0">
+    <div className="flex flex-shrink-0 items-end gap-1.5 overflow-x-auto overflow-y-hidden border-b border-neutral-300 bg-neutral-100 p-1.5 print:hidden dark:border-neutral-700 dark:bg-neutral-800">
 
       {paletteWithTally.map((keyDefWithDetails) => (
         <div

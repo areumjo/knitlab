@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KnitLab Chart is a colorwork-only chart editor. It is a static SPA with no
+KnitLab is a colorwork-only chart editor. It is a static SPA with no
 backend, deployed to GitHub Pages. The product owns exact cell colors,
 multi-color blocks, image reduction, `.knitlab` persistence, browser autosave,
 and exact JSON/PNG export. Do not add hand-knit symbols, instructions,

@@ -1,6 +1,6 @@
-# KnitLab Chart
+# KnitLab
 
-**Status: MVP release candidate.** KnitLab Chart is a focused colorwork editor
+**Status: MVP release candidate.** KnitLab is a focused colorwork editor
 that runs entirely in the browser and deploys as a static GitHub Pages site.
 
 ## MVP promise
@@ -28,7 +28,7 @@ editor.
 
 ## Product boundary
 
-KnitLab Chart does not contain:
+KnitLab does not contain:
 
 - hand-knit stitch symbols or written instructions
 - garments, shaping, measurements, or publication workflows

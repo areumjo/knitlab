@@ -154,12 +154,12 @@ export const TabbedSidebar: React.FC<TabbedSidebarProps> = (props) => {
   return (
     <div
       ref={sidebarRef}
-      className="bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 flex print:hidden relative transition-all duration-150 ease-in-out"
+      className="relative flex border-r border-neutral-300 bg-neutral-100 text-neutral-700 transition-all duration-150 ease-in-out print:hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
       style={{ width: `${currentTotalWidth}px` }}
     >
       {/* Tab Buttons Column */}
       <div
-        className="flex flex-col items-center bg-neutral-200 dark:bg-neutral-900 border-r border-neutral-300 dark:border-neutral-700 py-2 space-y-1 flex-shrink-0"
+        className="flex flex-shrink-0 flex-col items-center gap-1 border-r border-neutral-300 bg-neutral-200 py-2 dark:border-neutral-700 dark:bg-neutral-900"
         style={{ width: `${ICON_RIBBON_WIDTH}px` }}
       >
         {TABS.map((tab) => {

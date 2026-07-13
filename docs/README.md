@@ -1,6 +1,6 @@
-# KnitLab Chart documentation
+# KnitLab documentation
 
-KnitLab Chart is a static, browser-only colorwork editor deployed to GitHub
+KnitLab is a static, browser-only colorwork editor deployed to GitHub
 Pages. These documents are the current product and engineering contract:
 
 - [`COLORWORK_PRODUCT.md`](./COLORWORK_PRODUCT.md): product boundary and gates

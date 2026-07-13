@@ -1,6 +1,6 @@
 # Editable project serialization
 
-`.knitlab` is KnitLab Chart's editable source format. It stores sheets, layers,
+`.knitlab` is KnitLab's editable source format. It stores sheets, layers,
 ordered color definitions, reusable multi-color blocks, and sparse placements.
 The derived cell grid is rebuilt when a project opens.
 

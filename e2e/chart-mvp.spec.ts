@@ -27,7 +27,20 @@ async function dragCells(page: Page, start: [number, number], end: [number, numb
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'KnitLab Chart' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'KnitLab' })).toBeVisible();
+});
+
+test('keeps wheel navigation deliberate', async ({ page }) => {
+  const canvas = page.getByRole('application', { name: 'Colorwork chart canvas' });
+  await canvas.hover();
+
+  await page.mouse.wheel(0, -300);
+  await expect(page.getByText('100%', { exact: true })).toBeVisible();
+
+  await page.keyboard.down('Control');
+  await page.mouse.wheel(0, -300);
+  await page.keyboard.up('Control');
+  await expect(page.getByText('125%', { exact: true })).toBeVisible();
 });
 
 test('authors with line, rectangle, and flood fill as atomic gestures', async ({ page }) => {

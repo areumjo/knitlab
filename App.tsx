@@ -1332,6 +1332,9 @@ export const App: React.FC = () => {
     isChartSettingsModalOpen, isExportPreviewModalOpen
   ]);
 
+  const minimapIsUseful = activeSheet.rows * CELL_SIZE * currentZoom > canvasContainerSize.height
+    || activeSheet.cols * CELL_SIZE * currentZoom > canvasContainerSize.width;
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-neutral-100 transition-colors duration-300 dark:bg-neutral-800">
       <Header
@@ -1392,7 +1395,7 @@ export const App: React.FC = () => {
           onToggleSidebarContentVisibility={toggleSidebarContentVisibility}
           onOpenImageProcessor={() => setIsImageProcessorModalOpen(true)}
         />
-        <main ref={mainCanvasWrapperRef} className="relative flex min-h-0 flex-grow items-center justify-center overflow-hidden">
+        <main ref={mainCanvasWrapperRef} className="relative flex min-h-0 flex-grow items-center justify-center overflow-hidden bg-neutral-200 dark:bg-neutral-900">
           {canvasContainerSize.width > 0 && canvasContainerSize.height > 0 && activeSheet && (
             <KnitCanvas
               chartState={activeSheet}
@@ -1448,7 +1451,7 @@ export const App: React.FC = () => {
 
             />
           )}
-            <div
+            {minimapIsUseful && <div
               className="fixed z-10 hidden opacity-80 transition-opacity hover:opacity-100 md:block"
               style={{
                 bottom: MINIMAP_DEFAULT_BOTTOM,
@@ -1474,7 +1477,7 @@ export const App: React.FC = () => {
                      maxContainerSize={{width: MINIMAP_MAX_WIDTH, height: MINIMAP_MAX_HEIGHT}}
                  />
              )}
-            </div>
+            </div>}
         </main>
       </div>
 

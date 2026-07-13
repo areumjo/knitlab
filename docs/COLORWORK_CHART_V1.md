@@ -1,6 +1,6 @@
 # ColorworkChartV1
 
-This is the file seam between KnitLab Chart and Kniterate Studio. The canonical
+This is the file seam between KnitLab and Kniterate Studio. The canonical
 machine-readable definition is
 [`schemas/colorwork-chart-v1.schema.json`](../schemas/colorwork-chart-v1.schema.json).
 
@@ -14,7 +14,7 @@ machine-readable definition is
   editable `.knitlab` source.
 - Yarn, carrier, gauge, backing, fabric, and machine settings do not belong in
   this artifact.
-- KnitLab Chart does not impose a machine carrier limit. Studio validates the
+- KnitLab does not impose a machine carrier limit. Studio validates the
   imported palette against the selected machine workflow.
 
 The companion PNG follows the same visual row order. At one pixel per cell its

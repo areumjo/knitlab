@@ -1,6 +1,6 @@
 # Legacy product reference
 
-KnitLab Chart is now a colorwork-only static editor. The old Explore demo
+KnitLab is now a colorwork-only static editor. The old Explore demo
 payloads and thumbnails are retained here as reference data, outside Vite's
 `public/` directory, so they are not shipped to GitHub Pages.
 

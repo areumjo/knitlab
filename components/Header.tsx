@@ -75,12 +75,17 @@ export const Header: React.FC<HeaderProps> = ({
     reader.readAsText(file);
   };
 
-  const iconButton = 'h-9 w-9 p-2 flex-shrink-0';
+  const iconButton = 'h-9 w-9 flex-shrink-0 p-2';
   return (
-    <header className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-3 py-2 text-neutral-800 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 print:hidden">
-      <h1 className="order-1 whitespace-nowrap text-xl font-semibold text-neutral-800 dark:text-neutral-100">
-        KnitLab Chart
-      </h1>
+    <header className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 print:hidden">
+      <div className="order-1 flex min-w-0 items-center gap-2.5">
+        <span className="brand-knit-mark" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, index) => <i key={index} />)}
+        </span>
+        <h1 className="whitespace-nowrap text-xl font-bold text-neutral-900 dark:text-white">
+          KnitLab
+        </h1>
+      </div>
 
       <div className="order-3 flex w-full min-w-0 items-center justify-center gap-1 overflow-x-auto border-t border-neutral-200 pt-1 dark:border-neutral-700 md:order-2 md:w-auto md:flex-1 md:border-0 md:pt-0" aria-label="Chart commands">
         <Button variant="ghost" size="sm" className={iconButton} onClick={onNew} title="New chart" aria-label="New chart"><PlusIcon /></Button>
@@ -97,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="order-2 ml-auto flex flex-shrink-0 items-center gap-1 md:order-3">
         <Button variant="ghost" size="sm" className={iconButton} onClick={() => zoom(-1)} title="Zoom out" aria-label="Zoom out" disabled={effectiveZoomLevels.indexOf(currentZoom) === 0}><ZoomOutIcon /></Button>
-        <span className="w-11 text-center text-sm tabular-nums">{Math.round(currentZoom * 100)}%</span>
+        <span className="w-12 text-center text-xs font-semibold tabular-nums text-neutral-600 dark:text-neutral-300" aria-live="polite">{Math.round(currentZoom * 100)}%</span>
         <Button variant="ghost" size="sm" className={iconButton} onClick={() => zoom(1)} title="Zoom in" aria-label="Zoom in" disabled={effectiveZoomLevels.indexOf(currentZoom) === effectiveZoomLevels.length - 1}><ZoomInIcon /></Button>
         <Button variant="ghost" size="sm" className={iconButton} onClick={toggleDarkMode} title={isDarkMode ? 'Use light theme' : 'Use dark theme'} aria-label={isDarkMode ? 'Use light theme' : 'Use dark theme'}>
           {isDarkMode ? <SunIcon /> : <MoonIcon />}

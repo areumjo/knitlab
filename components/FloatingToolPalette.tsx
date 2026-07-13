@@ -49,19 +49,19 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
     { tool: Tool.Fill, label: 'Flood fill', icon: <FillIcon />, disabled: !activeKeyIsSolid },
   ];
 
-  const selectAndClipboardTools: ToolDefinition[] = [
+  const selectionTools: ToolDefinition[] = [
     { tool: Tool.Select, label: 'Select area', icon: <SelectIcon /> },
+    { tool: Tool.Move, label: 'Pan view', icon: <MoveIcon /> },
+  ];
+
+  const clipboardTools: ToolDefinition[] = [
     { label: 'Copy', icon: <CopyIcon />, action: onCopySelection, disabled: !canCopy },
     { label: 'Cut', icon: <CutIcon />, action: onCutSelection, disabled: !canCut },
     { label: 'Paste', icon: <PasteIcon />, action: onPasteFromClipboard, disabled: !canPaste },
   ];
 
-  const utilityTools: ToolDefinition[] = [
-    { tool: Tool.Move, label: 'Pan view', icon: <MoveIcon /> },
-  ];
-
   const renderButtonGroup = (group: ToolDefinition[], groupName: string) => (
-    <div className="flex items-center space-x-0.5" role="group" aria-label={groupName}>
+    <div className="flex items-center gap-0.5" role="group" aria-label={groupName}>
       {group.map(({ tool, label, icon, action, disabled }) => (
         <Button
           key={tool || label}
@@ -72,7 +72,7 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
             else if (action) action();
           }}
           title={label}
-          className={`p-2 relative ${(tool && activeTool === tool) ? 'ring-2 ring-accent dark:ring-accent' : ''}`}
+          className={`relative h-10 w-10 flex-shrink-0 p-2 ${(tool && activeTool === tool) ? 'shadow-sm ring-1 ring-inset ring-primary-dark' : ''}`}
           aria-label={label}
           aria-pressed={tool ? activeTool === tool : undefined}
           disabled={disabled}
@@ -85,13 +85,13 @@ export const FloatingToolPalette = React.forwardRef<HTMLDivElement, FloatingTool
 
   return (
     <div ref={ref} className="fixed inset-x-0 bottom-0 z-20 overflow-x-auto px-2 pb-2 print:hidden md:bottom-4 md:flex md:justify-center md:pb-0">
-      <div className="w-max flex flex-col items-center space-y-1">
-        <div className="flex items-center space-x-1 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-lg shadow-xl border border-neutral-300 dark:border-neutral-700">
+      <div className="flex w-max flex-col items-center gap-1">
+        <div className="flex items-center gap-1 rounded-md border border-neutral-300 bg-white p-1.5 shadow-lg dark:border-neutral-600 dark:bg-neutral-800">
           {renderButtonGroup(mainTools, "Main Tools")}
-          <div className="h-8 border-l border-neutral-300 dark:border-neutral-600 mx-1"></div>
-          {renderButtonGroup(selectAndClipboardTools, "Select and Clipboard Tools")}
-          <div className="h-8 border-l border-neutral-300 dark:border-neutral-600 mx-1"></div>
-          {renderButtonGroup(utilityTools, "Utility Tools")}
+          <div className="mx-1 h-7 border-l border-neutral-300 dark:border-neutral-600" />
+          {renderButtonGroup(selectionTools, "Selection and View Tools")}
+          <div className="mx-1 h-7 border-l border-neutral-300 dark:border-neutral-600" />
+          {renderButtonGroup(clipboardTools, "Clipboard Tools")}
         </div>
       </div>
     </div>
