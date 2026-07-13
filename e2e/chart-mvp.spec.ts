@@ -35,12 +35,14 @@ test('keeps wheel navigation deliberate', async ({ page }) => {
   await canvas.hover();
 
   await page.mouse.wheel(0, -300);
-  await expect(page.getByText('100%', { exact: true })).toBeVisible();
-
-  await page.keyboard.down('Control');
-  await page.mouse.wheel(0, -300);
-  await page.keyboard.up('Control');
   await expect(page.getByText('125%', { exact: true })).toBeVisible();
+
+  await page.mouse.wheel(0, -300);
+  await expect(page.getByText('125%', { exact: true })).toBeVisible();
+
+  await page.waitForTimeout(160);
+  await page.mouse.wheel(0, -300);
+  await expect(page.getByText('150%', { exact: true })).toBeVisible();
 });
 
 test('authors with line, rectangle, and flood fill as atomic gestures', async ({ page }) => {

@@ -98,6 +98,7 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const currentMousePositionRef = useRef<{ xInCanvas: number, yInCanvas: number, xInPannable: number, yInPannable: number } | null>(null);
   const wheelZoomDeltaRef = useRef(0);
+  const lastWheelZoomAtRef = useRef(0);
 
 
   const [toolGesture, setToolGesture] = useState<ToolGesture | null>(null);
@@ -682,9 +683,9 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (!e.ctrlKey && !e.metaKey) {
+      if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
         wheelZoomDeltaRef.current = 0;
-        onViewOffsetChange({ x: viewOffset.x - e.deltaX, y: viewOffset.y - e.deltaY });
+        onViewOffsetChange({ x: viewOffset.x - e.deltaX, y: viewOffset.y });
         return;
       }
 
@@ -694,10 +695,13 @@ export const KnitCanvas: React.FC<KnitCanvasProps> = ({
           ? canvasSize.height
           : 1;
       wheelZoomDeltaRef.current += e.deltaY * deltaScale;
-      if (Math.abs(wheelZoomDeltaRef.current) < 64) return;
+      const now = performance.now();
+      const threshold = e.ctrlKey || e.metaKey ? 48 : 80;
+      if (Math.abs(wheelZoomDeltaRef.current) < threshold || now - lastWheelZoomAtRef.current < 140) return;
 
       const zoomDirection = wheelZoomDeltaRef.current < 0 ? 1 : -1;
       wheelZoomDeltaRef.current = 0;
+      lastWheelZoomAtRef.current = now;
       const currentZoomIndex = effectiveZoomLevels.indexOf(zoomLevel);
       const newZoomIndex = Math.max(0, Math.min(
         effectiveZoomLevels.length - 1,
